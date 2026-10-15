@@ -163,17 +163,26 @@ i18n.inputMethod.fcitx5.settings.inputMethod = {
 ## 確認
 
 ```sh
+# 動いている fcitx5 の PID。nixpkgs の fcitx5 はプロセス名が .fcitx5-wrapped なので、pgrep -x fcitx5 では見つからない
+# (home-manager の systemd user service で起動している場合。NixOS では pgrep -f bin/fcitx5)
+pid=$(systemctl --user show -p MainPID --value fcitx5-daemon)
+
 # 動いている fcitx5 が /nix/store のものか。/usr/bin/fcitx5 ならディストリの fcitx5 が動いている
-readlink /proc/$(pgrep -x fcitx5)/exe
+readlink /proc/$pid/exe
 
-# GUI セッションに環境変数が届いているか。GUI から起動したアプリ (ターミナルなど) の中で実行する
+# fcitx5 が Meltype のアドオンと本体を読み込んでいるか。meltype.so と libMeltypeNative.so の2行が出る
+grep -o '/nix/store/[^ ]*meltype[^ ]*' /proc/$pid/maps | sort -u
+
+# GUI セッションに環境変数が届いているか。GUI から起動したアプリ (ターミナルなど) の中で実行する。
+# waylandFrontend = true のときは GTK_IM_MODULE / QT_IM_MODULE を設定しないので、XMODIFIERS だけが出る
 echo $GTK_IM_MODULE $QT_IM_MODULE $XMODIFIERS
-
-# Meltype に切り替えて、現在の入力メソッド名が meltype になるか
-fcitx5-remote -s meltype && fcitx5-remote -n
 ```
 
-`fcitx5-remote -n` が `meltype` にならなければ、`fcitx5 -r --verbose '*=5'` を端末から起動して、アドオン読み込み時のエラーを見る。
+`fcitx5-remote -n` はフォーカス中の入力欄の入力メソッドを返すので、エージェントのシェルから実行しても空になる。
+Meltype に切り替えて変換できるかは、ユーザーに GUI アプリで打ってもらって確かめる。
+
+アドオンが読み込まれていなければ、`journalctl --user -u fcitx5-daemon` か、`fcitx5 -r --verbose '*=5'` を端末から起動して、
+アドオン読み込み時のエラーを見る。
 
 ## 実行時のデータ
 
