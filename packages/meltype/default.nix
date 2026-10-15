@@ -1,11 +1,12 @@
 # Meltype の本体 (libMeltypeNative.so, .NET NativeAOT) と Mozc の変換ヘルパー。リリース zip のビルド済みバイナリを使う。
 # ソースからのビルドは .NET 10 の NativeAOT と Mozc の Bazel ビルド (upstream CI で 30〜40 分) が要るので採らない。
 # zip 内の fcitx5/meltype.so は Ubuntu 24.04 の fcitx5 向けなので使わず、fcitx5-meltype でソースからビルドする。
-# 更新は version と hash だけ書き換える。fcitx5-meltype のソースも同じ version を参照する。
+# 更新は version と、src・repoSrc の hash を書き換える。
 {
   lib,
   stdenvNoCC,
   fetchurl,
+  fetchFromGitHub,
   autoPatchelfHook,
   patchelf,
   unzip,
@@ -44,6 +45,14 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   postFixup = ''
     patchelf --add-rpath ${lib.getLib icu}/lib $out/lib/meltype/libMeltypeNative.so
   '';
+
+  # fcitx5-meltype がビルドするソース。本体と同じタグ
+  passthru.repoSrc = fetchFromGitHub {
+    owner = "yksr-melt";
+    repo = "Meltype";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-yI3wd5SEmtpCw97StXTzHGPk4poUpfBjWyB9qV5jr4s=";
+  };
 
   meta = {
     description = "Meltype core library and Mozc conversion helper (prebuilt)";

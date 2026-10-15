@@ -38,6 +38,9 @@ https://raw.githubusercontent.com/aster-void/nix-meltype/main/README.md を読�
   ユーザーが入れるのはこれだけでよい
 - `packages.x86_64-linux.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。リリース zip のビルド済みバイナリを使う。
   `fcitx5-meltype` が store パスで参照するので、個別に入れる必要はない
+- `packages.x86_64-linux.fcitx5-meltype-unstable` / `meltype-unstable` — 検証用。本体を upstream のソース
+  (flake input `meltype-src`、ロックされたコミット) から NativeAOT でビルドする。Mozc 変換ヘルパーはリリース版のバイナリを使う。
+  普段使いには上のリリース版を使う
 
 IBus エンジンはパッケージ化していない。ibus-daemon はユーザーディレクトリのコンポーネントを読まないため、
 non-NixOS の home-manager から登録する手段がない。IBus しか使えない環境では、このリポジトリは使えない。
@@ -180,3 +183,7 @@ fcitx5-remote -s meltype && fcitx5-remote -n
 
 `packages/meltype/default.nix` の `version` と `hash`、`packages/fcitx5-meltype/default.nix` のソースの `hash` を書き換える。
 `nix build .#fcitx5-meltype` で upstream のテスト (fcitx5 の testfrontend でキー入力と確定文字列を確かめる) が走る。
+
+検証用の `*-unstable` は `nix flake update meltype-src` で upstream main の HEAD に更新する。
+特定のコミットを試すときは `--override-input meltype-src github:yksr-melt/Meltype/<rev>` を付けてビルドする。
+upstream のテストは Mozc 無しで走るので、HEAD の本体とリリース版の Mozc ヘルパーの組み合わせは検証されない。

@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "meltype-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1791956328,
+        "narHash": "sha256-NTz4/yQx1j1EycemL40ruXnixhTiTl3DtVNkPFtqHN0=",
+        "owner": "yksr-melt",
+        "repo": "Meltype",
+        "rev": "45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yksr-melt",
+        "repo": "Meltype",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1791734076,
@@ -18,6 +34,7 @@
     },
     "root": {
       "inputs": {
+        "meltype-src": "meltype-src",
         "nixpkgs": "nixpkgs"
       }
     }

@@ -1,8 +1,8 @@
 # Meltype の fcitx5 アドオン。本体は dlopen で読むので、ビルド時のリンクには要らない。
+# ソースは本体と同じコミットを使う (meltype.repoSrc)。
 {
   lib,
   stdenv,
-  fetchFromGitHub,
   cmake,
   fcitx5,
   meltype,
@@ -11,12 +11,7 @@ stdenv.mkDerivation {
   pname = "fcitx5-meltype";
   inherit (meltype) version;
 
-  src = fetchFromGitHub {
-    owner = "yksr-melt";
-    repo = "Meltype";
-    rev = "v${meltype.version}";
-    hash = "sha256-yI3wd5SEmtpCw97StXTzHGPk4poUpfBjWyB9qV5jr4s=";
-  };
+  src = meltype.repoSrc;
   sourceRoot = "source/linux/fcitx5";
 
   postPatch = ''
