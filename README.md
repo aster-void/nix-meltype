@@ -31,6 +31,47 @@ https://raw.githubusercontent.com/aster-void/nix-meltype/main/INSTALL.md を読�
 - 適用後にログインし直しが要るなら私に頼み、戻ってきたら INSTALL.md の「確認」を実行して結果を報告する
 ```
 
+### 手で入れる
+
+home-manager の module `homeModules.default` を読み込んで、`programs.meltype` を書く。この module は `i18n.inputMethod` の
+`enable` / `type` を設定しないので、fcitx5 で使うときは自分で書く。デスクトップごとの workaround (GNOME の IBus unit の mask、
+Plasma で KWin に fcitx5 を起動させる設定) と、環境変数の `environment.d` への書き出しは module がする。
+
+```nix
+# flake.nix
+inputs.nix-meltype = {
+  url = "github:aster-void/nix-meltype";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+# homeManagerConfiguration の modules (NixOS の home-manager なら home-manager.sharedModules) に
+# inputs.nix-meltype.homeModules.default を足す
+```
+
+```nix
+# fcitx5
+i18n.inputMethod = {
+  enable = true;
+  type = "fcitx5";
+  fcitx5.waylandFrontend = true;
+};
+programs.meltype = {
+  enable = true;
+  framework.fcitx5.desktopWorkaround = "gnome"; # "gnome" | "plasma" | "none"
+};
+
+# IBus (non-NixOS の GNOME で、ディストリの ibus-daemon に足す)
+programs.meltype = {
+  enable = true;
+  framework.gnomeIbus = { };
+};
+```
+
+home-manager を使わない NixOS では、`i18n.inputMethod` の `fcitx5.addons` か `ibus.engines` に
+`packages.<system>.fcitx5-meltype` / `ibus-meltype` を入れる。
+
+適用したら、ディストリの IME の autostart を止めて、入力メソッドに `meltype` を追加し、ログインし直す
+(手順は INSTALL.md の「4. 既存の IME を止める」と「5. 設定を適用して Meltype を入力メソッドに追加する」)。
+
 ## ライセンス
 
 このリポジトリの Nix 式と CI 設定は [Unlicense](LICENSE) でパブリックドメインに置いている。
