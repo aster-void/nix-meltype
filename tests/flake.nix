@@ -1,4 +1,4 @@
-# home-manager module を、使える fcitx5・IBus × desktop の組み合わせすべてで評価する。
+# home-manager module を、使える fcitx5・IBus × desktopWorkaround の組み合わせすべてで評価する。
 # home-manager を本体の flake の input にすると利用者の lock にも入るので、テストは別の flake に分ける
 {
   inputs = {
@@ -28,9 +28,9 @@
       };
       # 各組み合わせの home-manager の設定 (programs.meltype.enable 以外)
       combinations = [
-        (fcitx5 // { programs.meltype.framework.fcitx5.desktop = "gnome"; })
-        (fcitx5 // { programs.meltype.framework.fcitx5.desktop = "plasma"; })
-        (fcitx5 // { programs.meltype.framework.fcitx5.desktop = "other"; })
+        (fcitx5 // { programs.meltype.framework.fcitx5.desktopWorkaround = "gnome"; })
+        (fcitx5 // { programs.meltype.framework.fcitx5.desktopWorkaround = "plasma"; })
+        (fcitx5 // { programs.meltype.framework.fcitx5.desktopWorkaround = "none"; })
         { programs.meltype.framework.gnomeIbus = { }; }
       ];
       home =

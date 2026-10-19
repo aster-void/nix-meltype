@@ -88,7 +88,7 @@ i18n.inputMethod = {
 };
 programs.meltype = {
   enable = true;
-  framework.fcitx5.desktop = "gnome"; # "gnome" | "plasma" | "other"
+  framework.fcitx5.desktopWorkaround = "gnome"; # "gnome" | "plasma" | "none"
 };
 ```
 

@@ -4,8 +4,8 @@
 (`fcitx5-meltype` / `ibus-meltype` は `meltype.repoSrc` のソースを使う)。
 利用者向けの導入手順は `INSTALL.md` (README のプロンプトが raw URL で読ませる)。パッケージや手順を変えたらそちらも直す。
 ディストリのデスクトップと噛み合わせる処理はコードで表せるものを home-manager module (`modules/home-manager.nix`) に入れ、
-INSTALL.md には軸 (fcitx5・IBus と desktop) ごとの選び方と、ユーザーの状態を書き換える作業だけを書く。組み合わせごとの手順を INSTALL.md に足さない。
-module は `tests/` の flake が fcitx5・IBus × desktop の組み合わせごとに評価する (`nix flake check ./tests`、CI では最新の home-manager で)。
+INSTALL.md には軸 (fcitx5・IBus と desktopWorkaround) ごとの選び方と、ユーザーの状態を書き換える作業だけを書く。組み合わせごとの手順を INSTALL.md に足さない。
+module は `tests/` の flake が fcitx5・IBus × desktopWorkaround の組み合わせごとに評価する (`nix flake check ./tests`、CI では最新の home-manager で)。
 aarch64 のビルドとテストは手元でできないので、CI (`.github/workflows/build.yml`) の `ubuntu-24.04-arm` のジョブで確かめる。
 `nix build .#fcitx5-meltype` で upstream のテスト (fcitx5 の testfrontend でキー入力と確定文字列を確かめる) が走る。
 `nix build .#ibus-meltype` では upstream の IBus 向けテスト (Mozc 込みの変換) と、専用の ibus-daemon に component を読ませて

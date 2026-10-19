@@ -42,13 +42,14 @@ in
           '';
           type = lib.types.submodule {
             options = {
-              desktop = lib.mkOption {
+              # 既定値を置かない。Plasma で書き忘れると、エラーにならずに入力できなくなる
+              desktopWorkaround = lib.mkOption {
                 type = lib.types.enum [
                   "gnome"
                   "plasma"
-                  "other"
+                  "none"
                 ];
-                description = "ログインするデスクトップ環境。";
+                description = "ログインするデスクトップ環境に合わせて入れる workaround。該当するデスクトップが無ければ none。";
               };
               package = packageOption "fcitx5-meltype" "fcitx5 アドオン。";
             };
@@ -101,13 +102,13 @@ in
       # GNOME Wayland の gnome-shell はアプリの入力を IBus の D-Bus 名 (org.freedesktop.IBus) へ送る。nixpkgs の fcitx5 は
       # IBus 互換のフロントエンドでこの名前を取るので、ディストリの ibus-daemon は毎回 kill されて unit が failed で残る。
       # unit を mask して起動させない。unit が無いシステムでは何も起きない
-      (lib.mkIf (fcitx5 != null && fcitx5.desktop == "gnome") {
+      (lib.mkIf (fcitx5 != null && fcitx5.desktopWorkaround == "gnome") {
         xdg.configFile."systemd/user/${gnomeIbusUnit}".text = "";
       })
 
       # KWin は Wayland の input method プロトコルを自分が起動したプロセスにしか渡さないので、
       # systemd user service (fcitx5-daemon) で起動した fcitx5 では入力できない。KWin に起動させる
-      (lib.mkIf (fcitx5 != null && fcitx5.desktop == "plasma") {
+      (lib.mkIf (fcitx5 != null && fcitx5.desktopWorkaround == "plasma") {
         i18n.inputMethod.fcitx5.systemd.enable = false;
         # kwinrc は KWin 自身も書き換えるので、xdg.configFile でファイルごと管理せずキー単位で書く。
         # システム設定の「仮想キーボード」で別の IME を選び直すと、KWin がこのキーを上書きする
