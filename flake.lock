@@ -3,11 +3,11 @@
     "meltype-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1791956328,
-        "narHash": "sha256-NTz4/yQx1j1EycemL40ruXnixhTiTl3DtVNkPFtqHN0=",
+        "lastModified": 1792385587,
+        "narHash": "sha256-eMrLFXdDrRamUuNphp7E2vHuqa4x/zyvDmYJHVsVIy0=",
         "owner": "yksr-melt",
         "repo": "Meltype",
-        "rev": "45e14f86558aa6ea34f2c2ecd038ba95ca8c3c46",
+        "rev": "3807c68c2f2a688df9756071d6d534223fc6cd6b",
         "type": "github"
       },
       "original": {
