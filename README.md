@@ -66,7 +66,7 @@ flakes は最初から有効になる。
 curl -fsSL https://install.determinate.systems/nix | sh -s -- install
 ```
 
-既存の Home Manager セットアップがない場合は、standalone の flake 構成で作る。
+non-NixOS で既存の Home Manager セットアップがない場合は、standalone の flake 構成で作る (NixOS では作らず、NixOS の設定に書く)。
 `~/.config/home-manager/{flake.nix,home.nix}` が生成されるので、以降の手順はそこに書く。
 
 ```sh
@@ -84,13 +84,14 @@ inputs.nix-meltype = {
 };
 ```
 
-module から `inputs` を参照できるように、`extraSpecialArgs = { inherit inputs; };` (home-manager) /
-`specialArgs = { inherit inputs; };` (NixOS) で渡す。
+module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }@inputs:` で受け取り、
+`extraSpecialArgs = { inherit inputs; };` (home-manager) / `specialArgs = { inherit inputs; };` (NixOS) で渡す。
 
 ### 2. fcitx5 と IBus のどちらで使うか決める
 
-ディストリの IME が IBus (GNOME の既定) で、それを使い続けたいなら IBus で使う。ディストリの IBus に Meltype を足すだけなので、
-既存の IME の設定はそのまま残る。それ以外は fcitx5 で使う。決めたらユーザーに確認する。
+GNOME では IBus で使う。GNOME は IBus を組み込みで扱うので、入力ソースの切り替えと候補ウィンドウが追加の設定なしで動く。
+non-NixOS ではディストリの IBus に Meltype を足すだけなので、既存の IBus エンジン (Mozc など) と設定も残る。
+GNOME 以外のデスクトップと、すでに fcitx5 を使っている環境では fcitx5 で使う。決めたらユーザーに確認する。
 
 - fcitx5: 「3. fcitx5 で使う場合」へ
 - IBus: 「4. IBus で使う場合」へ
@@ -99,8 +100,7 @@ module から `inputs` を参照できるように、`extraSpecialArgs = { inher
 
 #### 3-1. fcitx5 とアドオンを有効にする
 
-home-manager (non-NixOS を含む) でも NixOS でも、同じ内容をそれぞれの module に書く。
-fcitx5 を有効にするのは home-manager と NixOS のどちらか一方だけにする。
+下の内容を home-manager (non-NixOS を含む) か NixOS のどちらか一方の module に書く。オプション名は両方で同じ。
 
 ```nix
 { inputs, pkgs, ... }:
@@ -197,15 +197,27 @@ in
 
 GNOME 以外では、ibus-daemon を起動している箇所 (XDG autostart、KDE Plasma は「仮想キーボード」の設定) を調べて、同じ2つを渡す。
 
-nixpkgs の fcitx5 (このリポジトリの fcitx5 版など) が動いていれば、止めてから切り替える。止め方は「3-2. 既存の IME を止める」の逆で、
-fcitx5 の起動 (`i18n.inputMethod` の設定や autostart) を外し、IBus を止めている設定を戻す。
+#### NixOS / non-NixOS 共通
+
+fcitx5 が動いていれば止める。`i18n.inputMethod` の fcitx5 の設定や autostart を外す。
+IBus を止める設定 (以前 fcitx5 を入れたときに作った `Hidden=true` の autostart や、mask した unit) があれば外す。
 
 適用してログインし直した後に、入力ソースに Meltype を追加する。GNOME では「設定」→「キーボード」→「入力ソース」の
 日本語から Meltype を選ぶか、`org.gnome.desktop.input-sources sources` に `('ibus', 'meltype')` を足す。
 
-### 5. ユーザーに完了を伝え、試してもらう
+### 5. 確認してユーザーに完了を伝える
+
+「確認」の手順を実行してから、ユーザーに完了を伝え、GUI アプリで打って試してもらう。
 
 ## ハマりどころ
+
+### 共通
+
+- 環境変数と入力メソッドの変更は、ログインし直すまで既存の GUI セッションに反映されない
+- aarch64 などでは `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
+- `pkgs.system` は非推奨。`pkgs.stdenv.hostPlatform.system` を使う
+
+### fcitx5
 
 - ディストリの fcitx5 では動かない。アドオンは nixpkgs の fcitx5 に対してビルドしているので、`/usr/bin/fcitx5` からは読めない。
   ディストリの fcitx5 が XDG autostart や imsettings から起動されていると、home-manager の fcitx5
@@ -220,9 +232,6 @@ fcitx5 の起動 (`i18n.inputMethod` の設定や autostart) を外し、IBus �
   既存の `~/.config/fcitx5` の内容は使われなくなり、`fcitx5-configtool` で変えた設定も保存できなくなる。
 - NixOS で宣言的に `settings.inputMethod` を書くと、書き出し先は `/etc/xdg/fcitx5/profile` になる。
   ユーザーの `~/.config/fcitx5/profile` が存在するとそちらが優先されるので、宣言した内容は反映されない
-- 環境変数と入力メソッドの変更は、ログインし直すまで既存の GUI セッションに反映されない
-- aarch64 などでは `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
-- `pkgs.system` は非推奨。`pkgs.stdenv.hostPlatform.system` を使う
 
 ## 確認
 
@@ -253,9 +262,8 @@ Meltype に切り替えて変換できるかは、ユーザーに GUI アプリ�
 ### IBus
 
 ```sh
-# ibus コマンドは WAYLAND_DISPLAY / DISPLAY から接続先を決める。GUI セッション外のシェル (SSH など) では設定しないと
-# "Can't connect to IBus" になる
-export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
+# ibus コマンドは WAYLAND_DISPLAY (X11 では DISPLAY) から接続先を決める。GUI セッション外のシェル (SSH など) では
+# GUI セッションと同じ値 (例: wayland-0) を設定しないと "Can't connect to IBus" になる
 
 # ibus-daemon が Meltype の component を読み込んでいるか。meltype が出る
 ibus list-engine | grep -w meltype
