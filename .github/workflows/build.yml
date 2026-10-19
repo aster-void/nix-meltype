@@ -1,0 +1,19 @@
+# 全パッケージを x86_64 と aarch64 でビルドする (upstream のテストはビルドの中で走る)。aarch64 の検証はここでしかしていない
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: cachix/install-nix-action@v31
+      - run: nix build .#fcitx5-meltype .#ibus-meltype .#fcitx5-meltype-unstable .#ibus-meltype-unstable --print-build-logs

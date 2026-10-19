@@ -17,12 +17,16 @@
       meltype-src,
     }:
     let
-      # upstream のリリース zip は x86_64 だけ
-      system = "x86_64-linux";
-      pkgs = nixpkgs.legacyPackages.${system};
+      # 対応システムは、upstream がリリース zip を出しているもの
+      forAllSystems = nixpkgs.lib.genAttrs (builtins.attrNames (import ./packages/meltype/sources.nix));
     in
     {
-      packages.${system} = rec {
+      packages = forAllSystems (
+        system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        rec {
         meltype = pkgs.callPackage ./packages/meltype { };
         fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
         ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
@@ -41,8 +45,9 @@
         ibus-meltype-unstable = pkgs.callPackage ./packages/ibus-meltype {
           meltype = meltype-unstable;
         };
-      };
+      }
+      );
 
-      formatter.${system} = pkgs.nixfmt;
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
 }

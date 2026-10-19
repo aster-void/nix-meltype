@@ -4,6 +4,7 @@
 # csproj に PackageReference が無く、NativeAOT のコンパイラは nixpkgs の .NET SDK に同梱されるので、nugetDeps は要らない。
 {
   lib,
+  stdenv,
   buildDotnetModule,
   dotnetCorePackages,
   patchelf,
@@ -38,7 +39,7 @@ buildDotnetModule {
   # NativeAOT の共有ライブラリは publish でしか作られないので、buildDotnetModule の build/install を使わずに publish する
   buildPhase = ''
     runHook preBuild
-    dotnet publish src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r linux-x64 --no-restore $dotnetFlags -o publish
+    dotnet publish src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r ${dotnetCorePackages.systemToDotnetRid stdenv.hostPlatform.system} --no-restore $dotnetFlags -o publish
     runHook postBuild
   '';
 

@@ -2,16 +2,16 @@
 
 ## 提供するパッケージ
 
-対応システムは `x86_64-linux` だけ (upstream のリリース zip が x86_64 だけのため)。
+対応システムは `x86_64-linux` と `aarch64-linux` (upstream がリリース zip を出している CPU)。
 
 ユーザーが入れるのは `fcitx5-meltype` か `ibus-meltype` のどちらか1つ。
 
-- `packages.x86_64-linux.fcitx5-meltype` (`default`) — fcitx5 アドオン。nixpkgs の fcitx5 に対してソースからビルドする
-- `packages.x86_64-linux.ibus-meltype` — IBus エンジン (upstream の Python 製エンジン)。component は `share/ibus/component/meltype.xml`。
+- `packages.<system>.fcitx5-meltype` (`default`) — fcitx5 アドオン。nixpkgs の fcitx5 に対してソースからビルドする
+- `packages.<system>.ibus-meltype` — IBus エンジン (upstream の Python 製エンジン)。component は `share/ibus/component/meltype.xml`。
   エンジンは nixpkgs の Python と IBus の typelib で動くので、ディストリの ibus-daemon から使うときも python3-gi などは要らない
-- `packages.x86_64-linux.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。リリース zip のビルド済みバイナリを使う。
+- `packages.<system>.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。リリース zip のビルド済みバイナリを使う。
   `fcitx5-meltype` / `ibus-meltype` が store パスで参照するので、個別に入れる必要はない
-- `packages.x86_64-linux.{fcitx5,ibus}-meltype-unstable` / `meltype-unstable` — 検証用。本体を upstream のソース
+- `packages.<system>.{fcitx5,ibus}-meltype-unstable` / `meltype-unstable` — 検証用。本体を upstream のソース
   (flake input `meltype-src`、ロックされたコミット) から NativeAOT でビルドする。Mozc 変換ヘルパーはリリース版のバイナリを使う。
   普段使いには上のリリース版を使う
 
@@ -264,7 +264,7 @@ IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) が
 ### 共通
 
 - 環境変数と入力メソッドの変更は、ログインし直すまで既存の GUI セッションに反映されない
-- aarch64 などでは `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
+- 対応システム以外 (riscv64 など) では `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
 
 ### fcitx5
 

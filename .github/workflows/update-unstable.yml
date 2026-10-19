@@ -1,4 +1,5 @@
-# *-unstable が使う meltype-src を upstream main の HEAD に更新し、ビルドが通ったときだけ main に push する。
+# *-unstable が使う meltype-src を upstream main の HEAD に更新し、x86_64 と aarch64 の両方でビルドが通ったときだけ main に push する。
+# GITHUB_TOKEN の push では build.yml が走らないので、ここで両方ビルドする。
 # リリース版 (packages/meltype) は手動で追従する。
 name: update-unstable
 
@@ -11,8 +12,10 @@ permissions:
   contents: write
 
 jobs:
-  update:
+  lock:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
     steps:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
@@ -27,12 +30,38 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # build と push が同じ meltype-src のコミットを使うように、更新した flake.lock を渡す
       - if: steps.diff.outputs.changed == 'true'
-        run: nix build .#fcitx5-meltype-unstable .#ibus-meltype-unstable --print-build-logs
+        uses: actions/upload-artifact@v7
+        with:
+          name: flake-lock
+          path: flake.lock
 
-      - if: steps.diff.outputs.changed == 'true'
-        run: |
-          rev=$(nix flake metadata --json | jq -r '.locks.nodes."meltype-src".locked.rev')
+  build:
+    needs: lock
+    if: needs.lock.outputs.changed == 'true'
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: flake-lock
+      - uses: cachix/install-nix-action@v31
+      - run: nix build .#fcitx5-meltype-unstable .#ibus-meltype-unstable --print-build-logs
+
+  push:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: flake-lock
+      - run: |
+          rev=$(jq -r '.nodes."meltype-src".locked.rev' flake.lock)
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git commit -am "meltype-src: yksr-melt/Meltype@${rev:0:7} に更新"

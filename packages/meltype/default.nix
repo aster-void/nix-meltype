@@ -1,7 +1,7 @@
 # Meltype の本体 (libMeltypeNative.so, .NET NativeAOT) と Mozc の変換ヘルパー。リリース zip のビルド済みバイナリを使う。
 # ソースからのビルドは .NET 10 の NativeAOT と Mozc の Bazel ビルド (upstream CI で 30〜40 分) が要るので採らない。
 # zip 内の fcitx5/meltype.so は Ubuntu 24.04 の fcitx5 向けなので使わず、fcitx5-meltype でソースからビルドする。
-# 更新は version と、src・repoSrc の hash を書き換える。
+# 更新は version と、sources.nix・repoSrc の hash を書き換える。
 {
   lib,
   stdenvNoCC,
@@ -13,13 +13,17 @@
   icu,
   stdenv,
 }:
+let
+  sources = import ./sources.nix;
+  source = sources.${stdenvNoCC.hostPlatform.system};
+in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "meltype";
   version = "1.3.0";
 
   src = fetchurl {
-    url = "https://github.com/yksr-melt/Meltype/releases/download/v${finalAttrs.version}/Meltype-${finalAttrs.version}-linux.zip";
-    hash = "sha256-KE7lcpl13y3p7U/X1fWyKwmC23xaTyGGuwHVusg15zY=";
+    url = "https://github.com/yksr-melt/Meltype/releases/download/v${finalAttrs.version}/Meltype-${finalAttrs.version}-${source.asset}.zip";
+    inherit (source) hash;
   };
 
   nativeBuildInputs = [
@@ -62,6 +66,6 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       bsd3 # Mozc
     ];
     sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
-    platforms = [ "x86_64-linux" ];
+    platforms = builtins.attrNames sources;
   };
 })
