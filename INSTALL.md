@@ -48,8 +48,12 @@ nix run home-manager/master -- init --switch
 
 ### 1. どこに書くかを決める
 
-- home-manager がある → home-manager module。NixOS 上の home-manager でもこれを使う
-- NixOS で home-manager が無い → NixOS の `i18n.inputMethod` に直接書く (「3. 設定を書く」の NixOS の節)
+上から順に判定し、最初に当てはまったものを使う。入力メソッドの設定を NixOS と home-manager の2か所に分けないための順序。
+
+1. home-manager で `i18n.inputMethod` をすでに設定している → home-manager module
+2. NixOS → NixOS の `i18n.inputMethod` に直接書く (「3. 設定を書く」の NixOS の節)。home-manager があってもこちらを使う。
+   NixOS の GNOME module は `i18n.inputMethod` を IBus にする既定値を入れるので、home-manager で fcitx5 を足すと NixOS の IBus と並んで動く
+3. それ以外 (non-NixOS) → home-manager module
 
 ### 2. fcitx5 と IBus のどちらで使うか決める
 
@@ -59,9 +63,6 @@ nix run home-manager/master -- init --switch
 2. GNOME → IBus。GNOME は IBus を組み込みで扱うので、入力ソースの切り替えと候補ウィンドウが追加の設定なしで動く。
    non-NixOS ではディストリの IBus に Meltype を足すだけなので、既存の IBus エンジン (Mozc など) と設定も残る
 3. それ以外 → fcitx5
-
-home-manager module の IBus はディストリの ibus-daemon (`/usr/bin/ibus-daemon`) を使う。NixOS で IBus にするなら、
-home-manager があっても NixOS の節に書く。
 
 ### 3. 設定を書く
 
