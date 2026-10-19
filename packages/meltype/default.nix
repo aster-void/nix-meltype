@@ -15,11 +15,11 @@
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "meltype";
-  version = "1.2.1";
+  version = "1.3.0";
 
   src = fetchurl {
     url = "https://github.com/yksr-melt/Meltype/releases/download/v${finalAttrs.version}/Meltype-${finalAttrs.version}-linux.zip";
-    hash = "sha256-43fr1Kms702XkCQcctmW4lxWTUm4naXAOZUAK030s1g=";
+    hash = "sha256-KE7lcpl13y3p7U/X1fWyKwmC23xaTyGGuwHVusg15zY=";
   };
 
   nativeBuildInputs = [
@@ -51,7 +51,7 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     owner = "yksr-melt";
     repo = "Meltype";
     tag = "v${finalAttrs.version}";
-    hash = "sha256-yI3wd5SEmtpCw97StXTzHGPk4poUpfBjWyB9qV5jr4s=";
+    hash = "sha256-WihlGZQCejXSdhRQD7WJQnamwrxmjqLNecop7mDlk9s=";
   };
 
   meta = {
