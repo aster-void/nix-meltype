@@ -1,0 +1,83 @@
+{
+  "nodes": {
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792421589,
+        "narHash": "sha256-kd1uAerzkPNEBTh+Bl5wdfVqP2MPpxTRvcWtfbIP1kI=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "94c556362d7ef878175d2f0eb3045565d1685b0c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
+    "meltype-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1792412241,
+        "narHash": "sha256-WihlGZQCejXSdhRQD7WJQnamwrxmjqLNecop7mDlk9s=",
+        "owner": "yksr-melt",
+        "repo": "Meltype",
+        "rev": "6310c44b728d5ad88284853f9ef37ea224993b18",
+        "type": "github"
+      },
+      "original": {
+        "owner": "yksr-melt",
+        "repo": "Meltype",
+        "type": "github"
+      }
+    },
+    "nix-meltype": {
+      "inputs": {
+        "meltype-src": "meltype-src",
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "path": "..",
+        "type": "path"
+      },
+      "original": {
+        "path": "..",
+        "type": "path"
+      },
+      "parent": []
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1791734076,
+        "narHash": "sha256-i5qk1kLiit98rRbh1AXmWBNT9QXC/y4l5Wk/u5EdpDQ=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "7fd4004d0511991fff3a0524856a9be09e28c5f0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "home-manager": "home-manager",
+        "nix-meltype": "nix-meltype",
+        "nixpkgs": [
+          "nix-meltype",
+          "nixpkgs"
+        ]
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

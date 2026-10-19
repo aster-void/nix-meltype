@@ -27,26 +27,28 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         rec {
-        meltype = pkgs.callPackage ./packages/meltype { };
-        fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
-        ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
-        default = fcitx5-meltype;
+          meltype = pkgs.callPackage ./packages/meltype { };
+          fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
+          ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
+          default = fcitx5-meltype;
 
-        meltype-unstable = pkgs.callPackage ./packages/meltype-unstable {
-          inherit meltype;
-          src = meltype-src;
-          version = "0-unstable-${
-            builtins.substring 0 8 meltype-src.lastModifiedDate
-          }-${meltype-src.shortRev}";
-        };
-        fcitx5-meltype-unstable = pkgs.callPackage ./packages/fcitx5-meltype {
-          meltype = meltype-unstable;
-        };
-        ibus-meltype-unstable = pkgs.callPackage ./packages/ibus-meltype {
-          meltype = meltype-unstable;
-        };
-      }
+          meltype-unstable = pkgs.callPackage ./packages/meltype-unstable {
+            inherit meltype;
+            src = meltype-src;
+            version = "0-unstable-${
+              builtins.substring 0 8 meltype-src.lastModifiedDate
+            }-${meltype-src.shortRev}";
+          };
+          fcitx5-meltype-unstable = pkgs.callPackage ./packages/fcitx5-meltype {
+            meltype = meltype-unstable;
+          };
+          ibus-meltype-unstable = pkgs.callPackage ./packages/ibus-meltype {
+            meltype = meltype-unstable;
+          };
+        }
       );
+
+      homeModules.default = import ./modules/home-manager.nix self;
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
     };
