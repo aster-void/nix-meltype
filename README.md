@@ -193,6 +193,7 @@ Meltype に切り替えて変換できるかは、ユーザーに GUI アプリ�
 `packages/meltype/default.nix` の `version` と `hash`、`packages/fcitx5-meltype/default.nix` のソースの `hash` を書き換える。
 `nix build .#fcitx5-meltype` で upstream のテスト (fcitx5 の testfrontend でキー入力と確定文字列を確かめる) が走る。
 
-検証用の `*-unstable` は `nix flake update meltype-src` で upstream main の HEAD に更新する。
+検証用の `*-unstable` は CI (`.github/workflows/update-unstable.yml`) が毎日 `nix flake update meltype-src` で
+upstream main の HEAD に更新し、`fcitx5-meltype-unstable` のビルドが通ったときだけ main に push する。
 特定のコミットを試すときは `--override-input meltype-src github:yksr-melt/Meltype/<rev>` を付けてビルドする。
 upstream のテストは Mozc 無しで走るので、HEAD の本体とリリース版の Mozc ヘルパーの組み合わせは検証されない。

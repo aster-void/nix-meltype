@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-    # 検証用の *-unstable が使う upstream のソース。`nix flake update meltype-src` で main の HEAD に更新する
+    # 検証用の *-unstable が使う upstream のソース。CI (.github/workflows/update-unstable.yml) が毎日 main の HEAD に更新する
     meltype-src = {
       url = "github:yksr-melt/Meltype";
       flake = false;

@@ -1,0 +1,39 @@
+# *-unstable が使う meltype-src を upstream main の HEAD に更新し、ビルドが通ったときだけ main に push する。
+# リリース版 (packages/meltype) は手動で追従する。
+name: update-unstable
+
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v31
+
+      - run: nix flake update meltype-src
+
+      - id: diff
+        run: |
+          if git diff --quiet flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: nix build .#fcitx5-meltype-unstable --print-build-logs
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          rev=$(nix flake metadata --json | jq -r '.locks.nodes."meltype-src".locked.rev')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -am "meltype-src: yksr-melt/Meltype@${rev:0:7} に更新"
+          git push
