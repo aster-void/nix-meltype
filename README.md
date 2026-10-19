@@ -53,7 +53,9 @@ https://raw.githubusercontent.com/aster-void/nix-meltype/main/README.md を読�
 
 - Nix のインストール (マルチユーザー): Determinate Nix のインストーラを使う。 `/nix` が作成される。
 - home-manager の導入: 導入されていない場合、ミニマルな導入をする。破壊的変更は少ないが、 `/nix/` を指す symlink が `~` 以下に作られることがある。
-- 入力メソッドの切り替え (fcitx5 で使う場合): ディストリの IBus / fcitx5 を止めて nixpkgs の fcitx5 に切り替えるので、既存の IME の設定 (辞書・学習データ・キー設定) は引き継がれない。
+- 入力メソッドの切り替え (fcitx5 で使う場合): ディストリの IBus / fcitx5 を止めて nixpkgs の fcitx5 に切り替える。
+  IBus から切り替えると、IBus 側の設定 (入力ソース・キー設定) は使われなくなる。ディストリの fcitx5 から切り替えると、
+  `~/.config/fcitx5` はそのまま読まれる。
   ディストリで入れた fcitx5 のアドオン (fcitx5-mozc など) も nixpkgs の fcitx5 からは読めない。Meltype とは別に使い続けるなら、
   nixpkgs の同じアドオンを `fcitx5.addons` に足す。
 
@@ -88,6 +90,8 @@ inputs.nix-meltype = {
 
 module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }@inputs:` で受け取り、
 `extraSpecialArgs = { inherit inputs; };` (home-manager) / `specialArgs = { inherit inputs; };` (NixOS) で渡す。
+NixOS の module として home-manager を使う構成で home-manager 側に書くなら `home-manager.extraSpecialArgs` で渡し、
+以降の手順は home-manager の場合に従う。
 
 ### 2. fcitx5 と IBus のどちらで使うか決める
 
@@ -147,6 +151,7 @@ home-manager では service を止め、KWin が起動する IME を kwinrc に�
 ```nix
 { config, ... }:
 {
+  # このオプションが無い (評価エラーになる) 古い home-manager では、home-manager を更新する
   i18n.inputMethod.fcitx5.systemd.enable = false;
   # kwinrc は KWin 自身も書き換えるので、xdg.configFile でファイルごと管理せずキー単位で書く
   qt.kde.settings.kwinrc.Wayland.InputMethod =
@@ -170,15 +175,19 @@ home-manager では service を止め、KWin が起動する IME を kwinrc に�
   home-manager なら `xdg.configFile."systemd/user/org.freedesktop.IBus.session.GNOME.service".text = "";`)
 - KDE Plasma (Wayland): KWin が起動する IME は 3-1 の kwinrc の設定で nixpkgs の fcitx5 に変わる。
   システム設定 →「仮想キーボード」で別の IME を選び直すと kwinrc が上書きされる
-- 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止めてから、nixpkgs の fcitx5 を起動する
+- 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止める。nixpkgs の fcitx5 はログインし直すと起動する
+  (KDE Plasma では KWin が起動したものでないと入力できないので、手で起動しない)
+- `~/.config/systemd/user/` にファイルを置いたら `systemctl --user daemon-reload` する。ログアウトしても user manager が
+  残っていると (SSH などの別セッションがあると) 読み直されない
 
 #### 3-3. Meltype を入力メソッドに追加する
 
 入力メソッド名は `meltype`。追加の方法は、fcitx5 の入力メソッドの設定を今どう管理しているかで決める。
 
 - Nix の設定に `i18n.inputMethod.fcitx5.settings.inputMethod` がすでにある → そこに追記して適用する
-- それ以外 → 適用してログインし直した後に、`~/.config/fcitx5/profile` を書き換える。fcitx5 は終了時に profile を書き出して
-  手での変更を上書きするので、fcitx5 を止めてから書き換えて起動し直す。ユーザーに GUI で頼むなら `fcitx5-configtool` →「入力メソッド」
+- それ以外 → fcitx5 が動いていない間 (3-2 で止めた後、ログインし直す前) に `~/.config/fcitx5/profile` を書き換える。
+  fcitx5 は終了時に profile を書き出すので、動いている間に書き換えると上書きされる。
+  ログインし直した後にユーザーに GUI で頼むなら `fcitx5-configtool` →「入力メソッド」
 
 `settings.inputMethod` を新しく書き始めない。「ハマりどころ」の通り、home-manager では `~/.config/fcitx5` 全体が読み取り専用になり、
 NixOS では既存の `~/.config/fcitx5/profile` に負けて反映されない。
@@ -262,6 +271,9 @@ in
 }
 ```
 
+適用したら `systemctl --user daemon-reload` する。ログアウトしても user manager が残っていると (SSH などの別セッションがあると)
+drop-in が読み直されない。
+
 GNOME 以外では、ibus-daemon を起動している箇所 (XDG autostart、KDE Plasma は「仮想キーボード」の設定) を調べて、同じ2つを渡す。
 
 #### NixOS / non-NixOS 共通
@@ -284,20 +296,19 @@ IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) が
 
 - 環境変数と入力メソッドの変更は、ログインし直すまで既存の GUI セッションに反映されない
 - aarch64 などでは `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
-- `pkgs.system` は非推奨。`pkgs.stdenv.hostPlatform.system` を使う
 
 ### fcitx5
 
-- ディストリの fcitx5 では動かない。アドオンは nixpkgs の fcitx5 に対してビルドしているので、`/usr/bin/fcitx5` からは読めない。
-  ディストリの fcitx5 が XDG autostart や imsettings から起動されていると、home-manager の fcitx5
-  (systemd user service `fcitx5-daemon`) と取り合いになる。止め方は「3-2. 既存の IME を止める」
+- ディストリの fcitx5 では動かない。アドオンは nixpkgs の fcitx5 に対してビルドしているので、`/usr/bin/fcitx5` からは読めない
 - `nixpkgs.follows` を外さない。外すと、アドオンのビルドに使った fcitx5 と実行する fcitx5 のバージョンがずれる
-- home-manager の `fcitx5-daemon` が Wayland のソケットより先に起動すると、`journalctl --user -u fcitx5-daemon` に
-  `Failed to open wayland connection` が出て、fcitx5 は動いているのに入力できない。ソケットを待ってから起動させる:
+- home-manager の `gtk.enable` を有効にしていると、fcitx5 module は GTK の settings.ini に `gtk-im-module=fcitx` を書く。
+  GTK アプリは Wayland の text-input でなく fcitx の GTK モジュールを使うので、ディストリの GTK アプリにはディストリの fcitx5-gtk が要る
+- (症状が出たときだけ対処する) home-manager の `fcitx5-daemon` が Wayland のソケットより先に起動すると、
+  `journalctl --user -u fcitx5-daemon` に `Failed to open wayland connection` が出て、fcitx5 は動いているのに入力できない。
+  ソケットを待ってから起動させる (`wayland-0` は実際のソケット名に合わせる):
   `systemd.user.services.fcitx5-daemon.Service.ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 50); do [ -S \"$XDG_RUNTIME_DIR/wayland-0\" ] && exit 0; sleep 0.1; done; exit 1'";`
 - `QT_PLUGIN_PATH` (module が `hm-session-vars.sh` に入れる nixpkgs の Qt プラグインのパス) は environment.d に転記しない。
   ディストリの Qt アプリが別バージョンの Qt で作られたプラグインを読みにいく
-- GNOME の入力ソースに IBus の日本語エンジン (Mozc / Anthy など) が残っていると、fcitx5 と IBus の両方がキーを受け取る
 - home-manager で宣言的に `settings.inputMethod` を書くと、`~/.config/fcitx5` 全体が store への読み取り専用 symlink になる。
   既存の `~/.config/fcitx5` の内容は使われなくなり、`fcitx5-configtool` で変えた設定も保存できなくなる。
 - NixOS で宣言的に `settings.inputMethod` を書くと、書き出し先は `/etc/xdg/fcitx5/profile` になる。
