@@ -23,7 +23,7 @@ upstream の Linux 版はインストールスクリプトで入れる。スク�
 https://raw.githubusercontent.com/aster-void/nix-meltype/main/README.md を読んで、その手順で Meltype をこのマシンに入れて。
 - まずこのマシンの Nix 構成 (NixOS か、home-manager か、flake か、設定ファイルの場所) と、今動いている入力メソッド (fcitx5 / IBus、どこから起動しているか) を調べる
 - Nix や home-manager が入っていなければ、入れる前に README の「Nix / home-manager が無い場合」に書かれた変更内容を私に説明して確認する
-- 設定は既存の Nix 構成に追記する。README の「ハマりどころ」を全部確かめてから適用する
+- 設定は既存の Nix 構成に追記する。選んだ方式の手順と README の「ハマりどころ」を全部確かめてから適用する
 - fcitx5 と IBus のどちらで使うかは README の「2. fcitx5 と IBus のどちらで使うか決める」で決めて、私に確認する
 - 既存の fcitx5 / IBus の設定を上書きする変更や、ディストリの IME を止める変更は、実行前に私に確認する
 - 適用後にログインし直しが要るなら私に頼み、戻ってきたら README の「確認」を実行して結果を報告する
@@ -89,9 +89,12 @@ module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }
 
 ### 2. fcitx5 と IBus のどちらで使うか決める
 
-GNOME では IBus で使う。GNOME は IBus を組み込みで扱うので、入力ソースの切り替えと候補ウィンドウが追加の設定なしで動く。
-non-NixOS ではディストリの IBus に Meltype を足すだけなので、既存の IBus エンジン (Mozc など) と設定も残る。
-GNOME 以外のデスクトップと、すでに fcitx5 を使っている環境では fcitx5 で使う。決めたらユーザーに確認する。
+上から順に判定し、最初に当てはまったものを使う。決めたらユーザーに確認する。
+
+1. すでに fcitx5 を使っている → fcitx5
+2. GNOME → IBus。GNOME は IBus を組み込みで扱うので、入力ソースの切り替えと候補ウィンドウが追加の設定なしで動く。
+   non-NixOS ではディストリの IBus に Meltype を足すだけなので、既存の IBus エンジン (Mozc など) と設定も残る
+3. それ以外 → fcitx5
 
 - fcitx5: 「3. fcitx5 で使う場合」へ
 - IBus: 「4. IBus で使う場合」へ
@@ -199,8 +202,10 @@ GNOME 以外では、ibus-daemon を起動している箇所 (XDG autostart、KD
 
 #### NixOS / non-NixOS 共通
 
-fcitx5 が動いていれば止める。`i18n.inputMethod` の fcitx5 の設定や autostart を外す。
-IBus を止める設定 (以前 fcitx5 を入れたときに作った `Hidden=true` の autostart や、mask した unit) があれば外す。
+fcitx5 (Nix・ディストリどちらでも) を起動している設定があれば外す。対象は `i18n.inputMethod` の fcitx5 の設定、
+autostart (ディストリのものは「3-2. 既存の IME を止める」と同じく `Hidden=true` で止める)、
+fcitx5 向けの環境変数 (`GTK_IM_MODULE=fcitx` など。残っているとアプリが止めた fcitx5 に繋ごうとして入力できない)。
+IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) があれば外す。
 
 適用してログインし直した後に、入力ソースに Meltype を追加する。GNOME では「設定」→「キーボード」→「入力ソース」の
 日本語から Meltype を選ぶか、`org.gnome.desktop.input-sources sources` に `('ibus', 'meltype')` を足す。
