@@ -25,6 +25,7 @@
       packages.${system} = rec {
         meltype = pkgs.callPackage ./packages/meltype { };
         fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
+        ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
         default = fcitx5-meltype;
 
         meltype-unstable = pkgs.callPackage ./packages/meltype-unstable {
@@ -35,6 +36,9 @@
           }-${meltype-src.shortRev}";
         };
         fcitx5-meltype-unstable = pkgs.callPackage ./packages/fcitx5-meltype {
+          meltype = meltype-unstable;
+        };
+        ibus-meltype-unstable = pkgs.callPackage ./packages/ibus-meltype {
           meltype = meltype-unstable;
         };
       };

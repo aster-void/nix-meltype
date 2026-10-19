@@ -28,7 +28,7 @@ jobs:
           fi
 
       - if: steps.diff.outputs.changed == 'true'
-        run: nix build .#fcitx5-meltype-unstable --print-build-logs
+        run: nix build .#fcitx5-meltype-unstable .#ibus-meltype-unstable --print-build-logs
 
       - if: steps.diff.outputs.changed == 'true'
         run: |
