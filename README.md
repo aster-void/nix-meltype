@@ -197,3 +197,9 @@ Meltype に切り替えて変換できるかは、ユーザーに GUI アプリ�
 upstream main の HEAD に更新し、`fcitx5-meltype-unstable` のビルドが通ったときだけ main に push する。
 特定のコミットを試すときは `--override-input meltype-src github:yksr-melt/Meltype/<rev>` を付けてビルドする。
 upstream のテストは Mozc 無しで走るので、HEAD の本体とリリース版の Mozc ヘルパーの組み合わせは検証されない。
+
+## ライセンス
+
+このリポジトリの Nix 式と CI 設定は [Unlicense](LICENSE) でパブリックドメインに置いている。
+upstream の作者 (yksr-melt) を含め誰でも、upstream への取り込み・別ライセンスでの再配布・自分の著作物としての再公開ができる。
+ビルドされる Meltype 本体と Mozc は upstream のライセンス (GPL-3.0-or-later / BSD-3-Clause) に従う。
