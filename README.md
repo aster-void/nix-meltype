@@ -200,8 +200,8 @@ GNOME 以外では、ibus-daemon を起動している箇所 (XDG autostart、KD
 nixpkgs の fcitx5 (このリポジトリの fcitx5 版など) が動いていれば、止めてから切り替える。止め方は「3-2. 既存の IME を止める」の逆で、
 fcitx5 の起動 (`i18n.inputMethod` の設定や autostart) を外し、IBus を止めている設定を戻す。
 
-適用してログインし直した後に、入力ソースに Meltype を追加する。GNOME では「設定」→「キーボード」→「入力ソース」で
-「日本語 (Meltype)」を選ぶか、`org.gnome.desktop.input-sources sources` に `('ibus', 'meltype')` を足す。
+適用してログインし直した後に、入力ソースに Meltype を追加する。GNOME では「設定」→「キーボード」→「入力ソース」の
+日本語から Meltype を選ぶか、`org.gnome.desktop.input-sources sources` に `('ibus', 'meltype')` を足す。
 
 ### 5. ユーザーに完了を伝え、試してもらう
 
@@ -253,6 +253,10 @@ Meltype に切り替えて変換できるかは、ユーザーに GUI アプリ�
 ### IBus
 
 ```sh
+# ibus コマンドは WAYLAND_DISPLAY / DISPLAY から接続先を決める。GUI セッション外のシェル (SSH など) では設定しないと
+# "Can't connect to IBus" になる
+export WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-wayland-0}
+
 # ibus-daemon が Meltype の component を読み込んでいるか。meltype が出る
 ibus list-engine | grep -w meltype
 
