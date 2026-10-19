@@ -54,6 +54,8 @@ https://raw.githubusercontent.com/aster-void/nix-meltype/main/README.md を読�
 - Nix のインストール (マルチユーザー): Determinate Nix のインストーラを使う。 `/nix` が作成される。
 - home-manager の導入: 導入されていない場合、ミニマルな導入をする。破壊的変更は少ないが、 `/nix/` を指す symlink が `~` 以下に作られることがある。
 - 入力メソッドの切り替え (fcitx5 で使う場合): ディストリの IBus / fcitx5 を止めて nixpkgs の fcitx5 に切り替えるので、既存の IME の設定 (辞書・学習データ・キー設定) は引き継がれない。
+  ディストリで入れた fcitx5 のアドオン (fcitx5-mozc など) も nixpkgs の fcitx5 からは読めない。Meltype とは別に使い続けるなら、
+  nixpkgs の同じアドオンを `fcitx5.addons` に足す。
 
 ## 導入手順
 
@@ -125,22 +127,47 @@ module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }
   `~/.config/autostart/` に作り、`Hidden=true` だけを書く
 - GNOME: `org.gnome.desktop.input-sources sources` から `('ibus', ...)` のエントリだけを外す。
   `('xkb', ...)` はキーボード配列の指定なので残す。
-  ibus-daemon 自体は gnome-shell が起動するが、環境変数で GTK / Qt アプリは fcitx5 に繋がる
+  GNOME Wayland のアプリの入力は gnome-shell が IBus の D-Bus 名 (`org.freedesktop.IBus`) へ送る。nixpkgs の fcitx5 は
+  IBus 互換のフロントエンドでこの名前を取り、gnome-shell がそのまま候補ウィンドウを描くので、kimpanel などの拡張は要らない。
+  ディストリの ibus-daemon (systemd user unit `org.freedesktop.IBus.session.GNOME.service`) は fcitx5 に名前を取られて
+  毎回 kill され、unit が failed で残るので mask する (`~/.config/systemd/user/` に同名の空ファイルを置く。
+  home-manager なら `xdg.configFile."systemd/user/org.freedesktop.IBus.session.GNOME.service".text = "";`)
 - KDE Plasma (Wayland): システム設定 →「仮想キーボード」で選んだ IME を KWin が起動する。nixpkgs の fcitx5 を選ぶ
 - 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止めてから、nixpkgs の fcitx5 を起動する
 
 #### 3-3. Meltype を入力メソッドに追加する
 
-入力メソッド名は `meltype`。適用してログインし直した後に、どれかで追加する。
+入力メソッド名は `meltype`。追加の方法は、fcitx5 の入力メソッドの設定を今どう管理しているかで決める。
 
-- 設定ファイル: `~/.config/fcitx5/profile` を書き換える (fcitx5 の設定が home-manager 管理されていない場合はこちらを選択)。
-  fcitx5 は終了時に profile を書き出して手での変更を上書きするので、`pkill -x fcitx5` で止めてから書き換えて起動し直す
-- GUI: `fcitx5-configtool` →「入力メソッド」で Meltypeを追加する
-- Nix管理: `i18n.inputMethod.fcitx5.settings.inputMethod` (home-manager / NixOS 共通) に書く
+- Nix の設定に `i18n.inputMethod.fcitx5.settings.inputMethod` がすでにある → そこに追記して適用する
+- それ以外 → 適用してログインし直した後に、`~/.config/fcitx5/profile` を書き換える。fcitx5 は終了時に profile を書き出して
+  手での変更を上書きするので、fcitx5 を止めてから書き換えて起動し直す。ユーザーに GUI で頼むなら `fcitx5-configtool` →「入力メソッド」
+
+`settings.inputMethod` を新しく書き始めない。「ハマりどころ」の通り、home-manager では `~/.config/fcitx5` 全体が読み取り専用になり、
+NixOS では既存の `~/.config/fcitx5/profile` に負けて反映されない。
 
 例の `us` / `keyboard-us` はユーザーのキーボード配列に合わせる (JIS なら `jp` / `keyboard-jp`)。
+既定の入力メソッドを Meltype にするなら `DefaultIM` も `meltype` にする。
+
+```ini
+# ~/.config/fcitx5/profile
+[Groups/0]
+Name=Default
+Default Layout=us
+DefaultIM=meltype
+
+[Groups/0/Items/0]
+Name=keyboard-us
+
+[Groups/0/Items/1]
+Name=meltype
+
+[GroupOrder]
+0=Default
+```
 
 ```nix
+# すでに settings.inputMethod を書いている場合
 i18n.inputMethod.fcitx5.settings.inputMethod = {
   GroupOrder."0" = "Default";
   "Groups/0" = {
@@ -149,7 +176,7 @@ i18n.inputMethod.fcitx5.settings.inputMethod = {
     DefaultIM = "meltype";
   };
   "Groups/0/Items/0".Name = "keyboard-us";
-  "Groups/0/Items/1".Name = "meltype"; # <- この行を追記
+  "Groups/0/Items/1".Name = "meltype";
 };
 ```
 
