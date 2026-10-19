@@ -114,7 +114,43 @@ module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }
     enable = true;
     type = "fcitx5";
     fcitx5.addons = [ inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}.default ];
+    # Wayland セッション (GNOME / KDE Plasma) では true。GTK_IM_MODULE / QT_IM_MODULE を設定せず、
+    # アプリは Wayland の text-input で IME に繋がる (ディストリのアプリにディストリの fcitx5-gtk / fcitx5-qt が要らない)
+    fcitx5.waylandFrontend = true;
   };
+}
+```
+
+non-NixOS の home-manager では、さらに環境変数を GUI セッションに届ける。fcitx5 module は `XMODIFIERS` などを
+`home.sessionVariables` (`hm-session-vars.sh`) にしか書かないので、ログインシェルがこれを読まない限り GUI アプリに届かない。
+GDM と Plasma はどちらも `~/.config/environment.d` を取り込むので、`systemd.user.sessionVariables` に転記する。
+`home.sessionVariables` 全体を転記しない (値の型やシェル構文が environment.d で使えない変数が混ざる)。
+
+```nix
+{ config, lib, ... }:
+{
+  systemd.user.sessionVariables = lib.getAttrs (lib.filter (n: config.home.sessionVariables ? ${n}) [
+    "GTK_IM_MODULE"
+    "QT_IM_MODULE"
+    "XMODIFIERS"
+    "SDL_IM_MODULE"
+    "GLFW_IM_MODULE"
+  ]) config.home.sessionVariables;
+}
+```
+
+KDE Plasma (Wayland) では、fcitx5 を KWin に起動させる。KWin は Wayland の input method プロトコルを自分が起動した
+プロセスにしか渡さないので、home-manager の systemd user service (`fcitx5-daemon`) で起動した fcitx5 では入力できない。
+home-manager では service を止め、KWin が起動する IME を kwinrc に書く。NixOS では service が作られないので、
+ログインし直した後にシステム設定 →「仮想キーボード」で Fcitx 5 を選ぶ。
+
+```nix
+{ config, ... }:
+{
+  i18n.inputMethod.fcitx5.systemd.enable = false;
+  # kwinrc は KWin 自身も書き換えるので、xdg.configFile でファイルごと管理せずキー単位で書く
+  qt.kde.settings.kwinrc.Wayland.InputMethod =
+    "${config.i18n.inputMethod.package}/share/applications/org.fcitx.Fcitx5.desktop";
 }
 ```
 
@@ -132,7 +168,8 @@ module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }
   ディストリの ibus-daemon (systemd user unit `org.freedesktop.IBus.session.GNOME.service`) は fcitx5 に名前を取られて
   毎回 kill され、unit が failed で残るので mask する (`~/.config/systemd/user/` に同名の空ファイルを置く。
   home-manager なら `xdg.configFile."systemd/user/org.freedesktop.IBus.session.GNOME.service".text = "";`)
-- KDE Plasma (Wayland): システム設定 →「仮想キーボード」で選んだ IME を KWin が起動する。nixpkgs の fcitx5 を選ぶ
+- KDE Plasma (Wayland): KWin が起動する IME は 3-1 の kwinrc の設定で nixpkgs の fcitx5 に変わる。
+  システム設定 →「仮想キーボード」で別の IME を選び直すと kwinrc が上書きされる
 - 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止めてから、nixpkgs の fcitx5 を起動する
 
 #### 3-3. Meltype を入力メソッドに追加する
@@ -255,10 +292,11 @@ IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) が
   ディストリの fcitx5 が XDG autostart や imsettings から起動されていると、home-manager の fcitx5
   (systemd user service `fcitx5-daemon`) と取り合いになる。止め方は「3-2. 既存の IME を止める」
 - `nixpkgs.follows` を外さない。外すと、アドオンのビルドに使った fcitx5 と実行する fcitx5 のバージョンがずれる
-- home-manager の環境変数 (`GTK_IM_MODULE` / `QT_IM_MODULE` / `XMODIFIERS` / `QT_PLUGIN_PATH`) は
-  `home.sessionVariables` に入り、`hm-session-vars.sh` をログインシェルが読んだときだけ GUI セッションに届く。
-  non-NixOS でログインシェルを home-manager が管理していない場合や、ログインシェルが fish で `programs.fish` を
-  有効にしていない場合は、GUI アプリに環境変数が届かず、fcitx5 が動いていても入力できない
+- home-manager の `fcitx5-daemon` が Wayland のソケットより先に起動すると、`journalctl --user -u fcitx5-daemon` に
+  `Failed to open wayland connection` が出て、fcitx5 は動いているのに入力できない。ソケットを待ってから起動させる:
+  `systemd.user.services.fcitx5-daemon.Service.ExecStartPre = "${pkgs.bash}/bin/bash -c 'for i in $(seq 1 50); do [ -S \"$XDG_RUNTIME_DIR/wayland-0\" ] && exit 0; sleep 0.1; done; exit 1'";`
+- `QT_PLUGIN_PATH` (module が `hm-session-vars.sh` に入れる nixpkgs の Qt プラグインのパス) は environment.d に転記しない。
+  ディストリの Qt アプリが別バージョンの Qt で作られたプラグインを読みにいく
 - GNOME の入力ソースに IBus の日本語エンジン (Mozc / Anthy など) が残っていると、fcitx5 と IBus の両方がキーを受け取る
 - home-manager で宣言的に `settings.inputMethod` を書くと、`~/.config/fcitx5` 全体が store への読み取り専用 symlink になる。
   既存の `~/.config/fcitx5` の内容は使われなくなり、`fcitx5-configtool` で変えた設定も保存できなくなる。
@@ -270,9 +308,16 @@ IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) が
 ### fcitx5
 
 ```sh
-# 動いている fcitx5 の PID。nixpkgs の fcitx5 はプロセス名が .fcitx5-wrapped なので、pgrep -x fcitx5 では見つからない
-# (home-manager の systemd user service で起動している場合。NixOS では pgrep -f bin/fcitx5)
-pid=$(systemctl --user show -p MainPID --value fcitx5-daemon)
+# 動いている fcitx5 の PID。起動元 (systemd / KWin / autostart) によらず、D-Bus 名を持つプロセスから取る。
+# nixpkgs の fcitx5 はプロセス名が .fcitx5-wrapped なので、pgrep -x fcitx5 では見つからない
+pid=$(busctl --user status org.fcitx.Fcitx5 | sed -n 's/^PID=//p')
+
+# (KDE Plasma Wayland) KWin が起動しているか。親が kwin_wayland で、WAYLAND_SOCKET がある
+ps -o comm= -p "$(ps -o ppid= -p "$pid")"
+tr '\0' '\n' < /proc/$pid/environ | grep WAYLAND_SOCKET
+
+# (GNOME) gnome-shell が fcitx5 の IBus 互換フロントエンドに繋がっているか。PID が上の fcitx5 と同じ
+busctl --user status org.freedesktop.IBus | sed -n 's/^PID=//p'
 
 # 動いている fcitx5 が /nix/store のものか。/usr/bin/fcitx5 ならディストリの fcitx5 が動いている
 readlink /proc/$pid/exe
@@ -280,9 +325,10 @@ readlink /proc/$pid/exe
 # fcitx5 が Meltype のアドオンと本体を読み込んでいるか。meltype.so と libMeltypeNative.so の2行が出る
 grep -o '/nix/store/[^ ]*meltype[^ ]*' /proc/$pid/maps | sort -u
 
-# GUI セッションに環境変数が届いているか。GUI から起動したアプリ (ターミナルなど) の中で実行する。
-# waylandFrontend = true のときは GTK_IM_MODULE / QT_IM_MODULE を設定しないので、XMODIFIERS だけが出る
-echo $GTK_IM_MODULE $QT_IM_MODULE $XMODIFIERS
+# GUI セッションに環境変数が届いているか。waylandFrontend = true のときは GTK_IM_MODULE / QT_IM_MODULE を
+# 設定しないので、XMODIFIERS=@im=fcitx が出ればよい。GNOME でディストリが設定する QT_IM_MODULE=ibus は、
+# fcitx5 の IBus 互換フロントエンドに繋がるのでそのままでよい
+systemctl --user show-environment | grep -E 'GTK_IM_MODULE|QT_IM_MODULE|XMODIFIERS'
 ```
 
 `fcitx5-remote -n` はフォーカス中の入力欄の入力メソッドを返すので、エージェントのシェルから実行しても空になる。
