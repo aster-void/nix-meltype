@@ -82,6 +82,16 @@ in
             assertion = gnomeIbus != null -> !(im.enable && im.type == "fcitx5");
             message = "programs.meltype.framework.gnomeIbus は、i18n.inputMethod の fcitx5 を有効にしたままでは使えない";
           }
+          {
+            # NixOS には /usr/bin/ibus-daemon が無いので、drop-in が GNOME の IBus を起動できなくする
+            assertion = gnomeIbus != null -> !config.submoduleSupport.enable;
+            message = "programs.meltype.framework.gnomeIbus は NixOS では使えない。NixOS の i18n.inputMethod.ibus.engines に ibus-meltype を足す";
+          }
+          {
+            # 下の environment.d への転記は、home-manager の fcitx5 module が XMODIFIERS を home.sessionVariables に書く前提
+            assertion = fcitx5 != null -> config.home.sessionVariables ? XMODIFIERS;
+            message = "home.sessionVariables に XMODIFIERS が無い。home-manager の fcitx5 module が環境変数の書き先を変えたので、programs.meltype の転記を直す";
+          }
         ];
       }
 

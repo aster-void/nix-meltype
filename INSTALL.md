@@ -140,7 +140,8 @@ fcitx5 で使う場合:
   `~/.config/autostart/` に作り、`Hidden=true` だけを書く
 - GNOME: `org.gnome.desktop.input-sources sources` から `('ibus', ...)` のエントリだけを外す。
   `('xkb', ...)` はキーボード配列の指定なので残す。候補ウィンドウは gnome-shell が描くので、kimpanel などの拡張は要らない
-- 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止める。nixpkgs の fcitx5 はログインし直すと起動する
+- 動作中のプロセス: `ibus exit` / `pkill -x fcitx5` で止める。nixpkgs の fcitx5 は、home-manager の systemd unit で起動するなら
+  `home-manager switch` の時点で、それ以外はログインし直すと起動する
   (KDE Plasma では KWin が起動したものでないと入力できないので、手で起動しない)
 
 IBus で使う場合: fcitx5 (Nix・ディストリどちらでも) を起動している設定を外す。対象は `i18n.inputMethod` の fcitx5 の設定、
@@ -155,8 +156,9 @@ IBus を止める設定 (`Hidden=true` の autostart や、mask した unit) が
 入力メソッド名は `meltype`。追加の方法は、fcitx5 の入力メソッドの設定を今どう管理しているかで決める。
 
 - Nix の設定に `i18n.inputMethod.fcitx5.settings.inputMethod` がすでにある → そこに追記して適用する
-- それ以外 → 設定を適用し、fcitx5 が動いていない間 (4 で止めた後、ログインし直す前) に `~/.config/fcitx5/profile` を書き換える。
-  fcitx5 は終了時に profile を書き出すので、動いている間に書き換えると上書きされる。
+- それ以外 → 4 で fcitx5 を止めた後、設定を適用する前に `~/.config/fcitx5/profile` を書き換える。
+  fcitx5 は終了時に profile を書き出すので、動いている間に書き換えると上書きされる。home-manager の `fcitx5-daemon` は
+  `graphical-session.target` に WantedBy されていて、GUI セッション中に `home-manager switch` するとその場で起動するので、適用後には書けない。
   ログインし直した後にユーザーに GUI で頼むなら `fcitx5-configtool` →「入力メソッド」
 
 `settings.inputMethod` を新しく書き始めない。home-manager では `~/.config/fcitx5` 全体が store への読み取り専用 symlink になり、

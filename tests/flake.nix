@@ -33,6 +33,13 @@
         (fcitx5 // { programs.meltype.framework.fcitx5.desktopWorkaround = "none"; })
         { programs.meltype.framework.gnomeIbus = { }; }
       ];
+      # assertion で止まるべき設定。submoduleSupport.enable = true は NixOS の module として使う home-manager の代わり
+      rejected = [
+        {
+          programs.meltype.framework.gnomeIbus = { };
+          submoduleSupport.enable = true;
+        }
+      ];
       home =
         system: settings:
         home-manager.lib.homeManagerConfiguration {
@@ -58,6 +65,15 @@
           lib.concatMapStringsSep "\n" (
             c: builtins.unsafeDiscardStringContext (home system c).activationPackage.drvPath
           ) combinations
+          # homeManagerConfiguration は assertion の失敗を throw にするので、config.assertions を直接は読めない。
+          # 評価が失敗することだけを見る (submoduleSupport.enable を外した設定は combinations で評価が通っている)
+          + lib.concatMapStrings (
+            c:
+            if (builtins.tryEval (home system c).activationPackage.drvPath).success then
+              throw "assertion で止まるべき設定が通った: ${builtins.toJSON c}"
+            else
+              ""
+          ) rejected
         );
       });
     };
