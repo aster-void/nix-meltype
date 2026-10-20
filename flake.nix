@@ -23,16 +23,21 @@
         builtins.attrNames (import ./packages/meltype-bin/sources.nix)
       );
       # meltype-src のデフォルト。利用者が meltype-src を差し替えても、このリポジトリの flake.lock は変わらない
-      release = (builtins.fromJSON (builtins.readFile ./flake.lock)).nodes.meltype-src;
-      releaseVersion =
+      releaseSrc = builtins.fetchTree (builtins.fromJSON (builtins.readFile ./flake.lock))
+        .nodes.meltype-src.locked;
+      # upstream のリリース bot はタグを打つときに csproj の Version をその版にする (v1.2.2-pre.2 以降)。
+      # main のコミットでは、直前のタグの版になる
+      versionOf =
+        src:
         let
-          m = builtins.match "v(.+)" (release.original.ref or "");
+          m = builtins.match ".*<Version>([^<]+)</Version>.*" (
+            builtins.readFile "${src}/src/Meltype.Core/Meltype.Core.csproj"
+          );
         in
         if m == null then
-          throw "flake.nix の meltype-src の URL は github:yksr-melt/Meltype/v<版> の形でリリースタグを指す"
+          throw "${src}/src/Meltype.Core/Meltype.Core.csproj に <Version> が無い"
         else
           builtins.head m;
-      releaseSrc = builtins.fetchTree release.locked;
     in
     {
       packages = forAllSystems (
@@ -42,17 +47,13 @@
         in
         rec {
           meltype-bin = pkgs.callPackage ./packages/meltype-bin {
-            version = releaseVersion;
+            version = versionOf releaseSrc;
             repoSrc = releaseSrc;
           };
           meltype = pkgs.callPackage ./packages/meltype {
             inherit meltype-bin;
             src = meltype-src;
-            version =
-              if meltype-src.narHash == release.locked.narHash then
-                releaseVersion
-              else
-                "0-unstable-${builtins.substring 0 8 meltype-src.lastModifiedDate}-${meltype-src.shortRev}";
+            version = versionOf meltype-src;
           };
           fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
           ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
