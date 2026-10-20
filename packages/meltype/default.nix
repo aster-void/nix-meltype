@@ -15,6 +15,14 @@
   src,
   version,
 }:
+let
+  # upstream の linux/build.sh と同じ publish の引数
+  dotnetFlags = [
+    "-p:PublishAot=true"
+    "-p:NativeLib=Shared"
+    "-p:StripSymbols=true"
+  ];
+in
 buildDotnetModule {
   pname = "meltype";
   inherit src version;
@@ -22,12 +30,8 @@ buildDotnetModule {
   projectFile = "src/Meltype.Mac.Native/Meltype.Mac.Native.csproj";
   dotnet-sdk = dotnetCorePackages.sdk_10_0;
   selfContainedBuild = true;
-  # upstream の linux/build.sh と同じ publish の引数
-  dotnetFlags = [
-    "-p:PublishAot=true"
-    "-p:NativeLib=Shared"
-    "-p:StripSymbols=true"
-  ];
+  # restore にも同じ引数を渡す (PublishAot=true で ILCompiler のパッケージが要ると判定される)
+  inherit dotnetFlags;
 
   # NativeAOT のリンクに使う (upstream の linux/build.sh と同じ clang)
   nativeBuildInputs = [
@@ -36,10 +40,11 @@ buildDotnetModule {
   ];
   buildInputs = [ zlib ];
 
-  # NativeAOT の共有ライブラリは publish でしか作られないので、buildDotnetModule の build/install を使わずに publish する
+  # NativeAOT の共有ライブラリは publish でしか作られないので、buildDotnetModule の build/install を使わずに publish する。
+  # フラグはシェル変数 $dotnetFlags から取らない (__structuredAttrs の有無で文字列か配列かが変わる)
   buildPhase = ''
     runHook preBuild
-    dotnet publish src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r ${dotnetCorePackages.systemToDotnetRid stdenv.hostPlatform.system} --no-restore $dotnetFlags -o publish
+    dotnet publish src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r ${dotnetCorePackages.systemToDotnetRid stdenv.hostPlatform.system} --no-restore ${lib.escapeShellArgs dotnetFlags} -o publish
     runHook postBuild
   '';
 
