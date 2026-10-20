@@ -63,7 +63,8 @@ nix run home-manager/master -- init --switch
 1. すでに fcitx5 を使っている → fcitx5
 2. GNOME → IBus。GNOME は IBus を組み込みで扱うので、入力ソースの切り替えと候補ウィンドウが追加の設定なしで動く。
    non-NixOS ではディストリの IBus に Meltype を足すだけなので、既存の IBus エンジン (Mozc など) と設定も残る
-3. それ以外 → fcitx5
+3. それ以外 → fcitx5。NixOS 以外のディストリで、GNOME 以外のデスクトップの IBus に足す方法は、この flake ではサポートしていない
+   (home-manager module はディストリの ibus-daemon を GNOME の unit 経由でしか扱わない)。すでに IBus を使っていても fcitx5 にする
 
 ### 3. 設定を書く
 

@@ -110,6 +110,8 @@ programs.meltype = {
 };
 ```
 
+NixOS 以外で、GNOME 以外のデスクトップの IBus に Meltype を足す方法は今のところサポートしていない。その環境では fcitx5 で使う。
+
 #### 適用したあと
 
 適用したら、ディストリの IME の autostart を止めて、入力メソッドに `meltype` を追加し、ログインし直す
