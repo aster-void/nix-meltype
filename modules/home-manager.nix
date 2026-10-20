@@ -4,8 +4,10 @@
 # オプションには環境の事実とユーザーの選択だけを置き、どの処理をするかは module が決める
 # (個別の処理を外したいユーザーは、module が設定した home-manager のオプションを直接上書きする)。
 # fcitx5 側の処理は NixOS 上の home-manager でも害が無いので、non-NixOS かどうかで分けない。
-# NixOS の判定には submoduleSupport.enable (NixOS の module として使う home-manager で true) を使う。standalone の home-manager を
-# NixOS で使う場合は判定できない (targets.genericLinux.enable を使う案は、有効にすると GPU ドライバのセットアップまで求められるので採らない)。
+# home-manager から NixOS かどうかは確実には判定できない。submoduleSupport.enable (NixOS の module として使う home-manager で true) は
+# standalone の home-manager を NixOS で使う場合を見分けられないので、これを使う assertion は取りこぼしを減らすだけで、
+# NixOS で gnomeIbus を選ばせない役は INSTALL.md の判定順が持つ
+# (targets.genericLinux.enable を使う案は、有効にすると GPU ドライバのセットアップまで求められるので採らない)。
 # packagesFor は flake.nix の、pkgs からこの flake のパッケージを作る関数
 packagesFor:
 {
