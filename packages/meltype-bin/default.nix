@@ -2,17 +2,18 @@
 # meltype (ソースビルドの本体) は、ここから Mozc ヘルパーだけを使う。ヘルパーのソースビルドは Mozc の Bazel ビルド
 # (upstream CI で 30〜40 分) が要るので採らない。
 # zip 内の fcitx5/meltype.so は Ubuntu 24.04 の fcitx5 向けなので使わず、fcitx5-meltype でソースからビルドする。
-# 更新は version と、sources.nix・repoSrc の hash を書き換える。
+# version と repoSrc は flake.nix が flake input meltype-src のデフォルト (自分の flake.lock) から渡す。
 {
   lib,
   stdenvNoCC,
   fetchurl,
-  fetchFromGitHub,
   autoPatchelfHook,
   patchelf,
   unzip,
   icu,
   stdenv,
+  version,
+  repoSrc,
 }:
 let
   sources = import ./sources.nix;
@@ -20,7 +21,7 @@ let
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "meltype-bin";
-  version = "1.3.0";
+  inherit version;
 
   src = fetchurl {
     url = "https://github.com/yksr-melt/Meltype/releases/download/v${finalAttrs.version}/Meltype-${finalAttrs.version}-${source.asset}.zip";
@@ -51,14 +52,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     patchelf --add-rpath ${lib.getLib icu}/lib $out/lib/meltype/libMeltypeNative.so
   '';
 
-  # fcitx5-meltype / ibus-meltype に meltype-bin を渡したときのソース。本体と同じタグ。
-  # flake の checks が、flake input meltype-src のデフォルトと同じソースかを hash で確かめる
-  passthru.repoSrc = fetchFromGitHub {
-    owner = "yksr-melt";
-    repo = "Meltype";
-    tag = "v${finalAttrs.version}";
-    hash = "sha256-WihlGZQCejXSdhRQD7WJQnamwrxmjqLNecop7mDlk9s=";
-  };
+  # fcitx5-meltype / ibus-meltype に meltype-bin を渡したときのソース。本体と同じタグ
+  passthru = { inherit repoSrc; };
 
   meta = {
     description = "Meltype core library and Mozc conversion helper (prebuilt)";

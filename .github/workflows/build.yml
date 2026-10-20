@@ -17,6 +17,5 @@ jobs:
       - uses: actions/checkout@v7
       - uses: cachix/install-nix-action@v31
       - run: nix build .#fcitx5-meltype .#ibus-meltype .#meltype-bin --print-build-logs
-      - run: nix flake check
       # 利用者が入れる最新の home-manager で評価する (オプション名の変更を検出する)
       - run: nix flake check ./tests --override-input home-manager github:nix-community/home-manager

@@ -1,8 +1,7 @@
 # nix-meltype のメンテナンス
 
-リリース版の更新は、`flake.nix` の `meltype-src` の URL のタグと、`packages/meltype-bin/default.nix` の `version` と `passthru.repoSrc` の `hash`、
-`packages/meltype-bin/sources.nix` の CPU ごとの zip の `hash` を書き換えて、`nix flake update meltype-src` する。
-`meltype-src` と `meltype-bin` のタグがずれていると `nix flake check` が失敗する。
+リリース版の更新は、`flake.nix` の `meltype-src` の URL のタグと、`packages/meltype-bin/sources.nix` の CPU ごとの zip の `hash` を書き換えて、
+`nix flake update meltype-src` する。`meltype-bin` の版とソースは、flake.nix がこのリポジトリの `flake.lock` の `meltype-src` から読む。
 本体 (`meltype`) は `meltype-src` からビルドし、Mozc ヘルパーだけ `meltype-bin` から取る。`fcitx5-meltype` / `ibus-meltype` は `meltype.repoSrc` (= `meltype-src`) のソースを使う。
 利用者向けの導入手順は `INSTALL.md` (README のプロンプトが raw URL で読ませる)。パッケージや手順を変えたらそちらも直す。
 ディストリのデスクトップと噛み合わせる処理はコードで表せるものを home-manager module (`modules/home-manager.nix`) に入れ、

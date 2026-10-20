@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
-    # meltype (本体) をビルドする upstream のソース。デフォルトは meltype-bin と同じリリースタグ (checks が確かめる)。
+    # meltype (本体) をビルドする upstream のソース。デフォルトはリリースタグで、meltype-bin の版もこのタグから決まる。
     # 利用者は inputs.nix-meltype.inputs.meltype-src.url で pre 版のタグや main のコミットに差し替える
     meltype-src = {
       url = "github:yksr-melt/Meltype/v1.3.0";
@@ -22,24 +22,35 @@
       forAllSystems = nixpkgs.lib.genAttrs (
         builtins.attrNames (import ./packages/meltype-bin/sources.nix)
       );
+      # meltype-src のデフォルト。利用者が meltype-src を差し替えても、このリポジトリの flake.lock は変わらない
+      release = (builtins.fromJSON (builtins.readFile ./flake.lock)).nodes.meltype-src;
+      releaseVersion =
+        let
+          m = builtins.match "v(.+)" (release.original.ref or "");
+        in
+        if m == null then
+          throw "flake.nix の meltype-src の URL は github:yksr-melt/Meltype/v<版> の形でリリースタグを指す"
+        else
+          builtins.head m;
+      releaseSrc = builtins.fetchTree release.locked;
     in
     {
       packages = forAllSystems (
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
-          meltype-bin = pkgs.callPackage ./packages/meltype-bin { };
-          # input からはタグ名が読めないので、meltype-bin のタグと同じソースのときだけその版を名乗る
-          isRelease = meltype-src.narHash == meltype-bin.repoSrc.outputHash;
         in
         rec {
-          inherit meltype-bin;
+          meltype-bin = pkgs.callPackage ./packages/meltype-bin {
+            version = releaseVersion;
+            repoSrc = releaseSrc;
+          };
           meltype = pkgs.callPackage ./packages/meltype {
             inherit meltype-bin;
             src = meltype-src;
             version =
-              if isRelease then
-                meltype-bin.version
+              if meltype-src.narHash == release.locked.narHash then
+                releaseVersion
               else
                 "0-unstable-${builtins.substring 0 8 meltype-src.lastModifiedDate}-${meltype-src.shortRev}";
           };
@@ -48,18 +59,6 @@
           default = fcitx5-meltype;
         }
       );
-
-      checks = forAllSystems (system: {
-        # meltype-src のデフォルトと meltype-bin を同じリリースに揃え忘れていないか
-        meltype-src-matches-bin =
-          let
-            bin = self.packages.${system}.meltype-bin;
-          in
-          assert nixpkgs.lib.assertMsg (
-            meltype-src.narHash == bin.repoSrc.outputHash
-          ) "flake input meltype-src が meltype-bin ${bin.version} のタグと違うソースを指している";
-          nixpkgs.legacyPackages.${system}.emptyFile;
-      });
 
       homeModules.default = import ./modules/home-manager.nix self;
 
