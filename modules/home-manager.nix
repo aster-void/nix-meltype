@@ -3,9 +3,11 @@
 # 噛み合わせの処理は home-manager の fcitx5 module 自体の不足なので、home-manager 側で直ったらここから消す。
 # オプションには環境の事実とユーザーの選択だけを置き、どの処理をするかは module が決める
 # (個別の処理を外したいユーザーは、module が設定した home-manager のオプションを直接上書きする)。
-# fcitx5 側の処理は NixOS 上の home-manager でも害が無いので、non-NixOS かどうかで分けない
-# (targets.genericLinux.enable で判定する案は、有効にすると GPU ドライバのセットアップまで求められるので採らない)。
-self:
+# fcitx5 側の処理は NixOS 上の home-manager でも害が無いので、non-NixOS かどうかで分けない。
+# NixOS の判定には submoduleSupport.enable (NixOS の module として使う home-manager で true) を使う。standalone の home-manager を
+# NixOS で使う場合は判定できない (targets.genericLinux.enable を使う案は、有効にすると GPU ドライバのセットアップまで求められるので採らない)。
+# packagesFor は flake.nix の、pkgs からこの flake のパッケージを作る関数
+packagesFor:
 {
   config,
   lib,
@@ -15,7 +17,7 @@ self:
 let
   cfg = config.programs.meltype;
   im = config.i18n.inputMethod;
-  packages = self.packages.${pkgs.stdenv.hostPlatform.system};
+  packages = packagesFor pkgs;
   fcitx5 = cfg.framework.fcitx5 or null;
   gnomeIbus = cfg.framework.gnomeIbus or null;
   # GNOME が ibus-daemon を起動する systemd user unit
@@ -25,7 +27,7 @@ let
     lib.mkOption {
       type = lib.types.package;
       default = packages.${name};
-      defaultText = lib.literalExpression "nix-meltype.packages.\${system}.${name}";
+      defaultText = lib.literalExpression "(pkgs に overlays.default を当てたもの).${name}";
       inherit description;
     };
 in

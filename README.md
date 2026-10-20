@@ -57,25 +57,24 @@ inputs.nix-meltype = {
 
 #### NixOS の設定に書く
 
-NixOS の `i18n.inputMethod` に、この flake のパッケージを直接入れる。`programs.meltype` は使わない (home-manager 専用)。
+この flake の overlay `overlays.default` を `nixpkgs.overlays` に足し、NixOS の `i18n.inputMethod` にパッケージを入れる。
+overlay は、システムの fcitx5 に対してアドオンをビルドする。`programs.meltype` は使わない (home-manager 専用)。
 `inputs` は `specialArgs = { inherit inputs; };` で module に渡しておく。
 
 ```nix
 # configuration.nix など (NixOS module)
 { inputs, pkgs, ... }:
-let
-  meltype = inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system};
-in
 {
+  nixpkgs.overlays = [ inputs.nix-meltype.overlays.default ];
   i18n.inputMethod = {
     enable = true;
     # fcitx5
     type = "fcitx5";
-    fcitx5.addons = [ meltype.fcitx5-meltype ];
+    fcitx5.addons = [ pkgs.fcitx5-meltype ];
     fcitx5.waylandFrontend = true;
     # IBus
     # type = "ibus";
-    # ibus.engines = [ meltype.ibus-meltype ];
+    # ibus.engines = [ pkgs.ibus-meltype ];
   };
 }
 ```
@@ -86,7 +85,7 @@ in
 standalone の home-manager では `homeManagerConfiguration` の `modules` に、NixOS の module として使う home-manager では
 `home-manager.sharedModules` に `inputs.nix-meltype.homeModules.default` を足す。
 
-`programs.meltype` は、アドオンの追加と、デスクトップごとの workaround (GNOME の IBus unit の mask、Plasma で KWin に fcitx5 を起動させる設定)、
+`programs.meltype` は、home-manager の `pkgs` の fcitx5 に対してビルドしたアドオンの追加と、デスクトップごとの workaround (GNOME の IBus unit の mask、Plasma で KWin に fcitx5 を起動させる設定)、
 環境変数の `environment.d` への書き出しをする。home-manager の `i18n.inputMethod` の `enable` / `type` は設定しないので、fcitx5 で使うときは自分で書く。
 
 ```nix
@@ -140,15 +139,16 @@ inputs.nix-meltype = {
 本体をソースからビルドせず、upstream のリリース zip のビルド済み本体 `meltype-bin` を使える。
 ビルドに時間をかけたくないときや、本体のソースビルドが通らないときに使う。
 `meltype-bin` はこの flake が固定している最新リリースの版で、`meltype-src` を差し替えても変わらない。
-そのため、上の「最新リリース以外の版を使う」とは同時に使えない
-(`p` は `inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}`)。
+そのため、上の「最新リリース以外の版を使う」とは同時に使えない。
 
 ```nix
-# NixOS の設定
-i18n.inputMethod.fcitx5.addons = [ (p.fcitx5-meltype.override { meltype = p.meltype-bin; }) ];
+# NixOS の設定 (overlay を足した pkgs)
+i18n.inputMethod.fcitx5.addons = [ (pkgs.fcitx5-meltype.override { meltype = pkgs.meltype-bin; }) ];
+i18n.inputMethod.ibus.engines = [ (pkgs.ibus-meltype.override { meltype = pkgs.meltype-bin; }) ];
 
-# home-manager の設定
+# home-manager の設定 (p = pkgs.extend inputs.nix-meltype.overlays.default)
 programs.meltype.framework.fcitx5.package = p.fcitx5-meltype.override { meltype = p.meltype-bin; };
+programs.meltype.framework.gnomeIbus.package = p.ibus-meltype.override { meltype = p.meltype-bin; };
 ```
 
 ## ライセンス

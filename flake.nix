@@ -41,30 +41,34 @@
           throw "${src}/src/Meltype.Core/Meltype.Core.csproj に <Version> が無い"
         else
           builtins.head m;
+      # 利用者の pkgs でビルドする。fcitx5 アドオンは、実行する fcitx5 (利用者の overlay や config が効いたもの) に対してビルドしないと
+      # ABI がずれても黙って動かなくなる
+      packagesFor = pkgs: rec {
+        meltype-bin = pkgs.callPackage ./packages/meltype-bin {
+          version = versionOf releaseSrc;
+          repoSrc = releaseSrc;
+        };
+        meltype = pkgs.callPackage ./packages/meltype {
+          inherit meltype-bin;
+          src = meltype-src;
+          version = versionOf meltype-src;
+        };
+        fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
+        ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
+      };
     in
     {
       packages = forAllSystems (
         system:
         let
-          pkgs = nixpkgs.legacyPackages.${system};
+          p = packagesFor nixpkgs.legacyPackages.${system};
         in
-        rec {
-          meltype-bin = pkgs.callPackage ./packages/meltype-bin {
-            version = versionOf releaseSrc;
-            repoSrc = releaseSrc;
-          };
-          meltype = pkgs.callPackage ./packages/meltype {
-            inherit meltype-bin;
-            src = meltype-src;
-            version = versionOf meltype-src;
-          };
-          fcitx5-meltype = pkgs.callPackage ./packages/fcitx5-meltype { inherit meltype; };
-          ibus-meltype = pkgs.callPackage ./packages/ibus-meltype { inherit meltype; };
-          default = fcitx5-meltype;
-        }
+        p // { default = p.fcitx5-meltype; }
       );
 
-      homeModules.default = import ./modules/home-manager.nix self;
+      overlays.default = final: _prev: packagesFor final;
+
+      homeModules.default = import ./modules/home-manager.nix packagesFor;
 
       formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
     };

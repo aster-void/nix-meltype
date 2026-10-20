@@ -7,7 +7,9 @@
 - `homeModules.default` — home-manager module (`programs.meltype`)。Meltype を fcitx5 のアドオンかディストリの IBus に足し、
   ディストリのデスクトップと nixpkgs の IME を噛み合わせる設定 (環境変数・KWin・ディストリの ibus-daemon) を書く。
   `i18n.inputMethod` の `enable` / `type` は設定しない
-- `packages.<system>.fcitx5-meltype` (`default`) — fcitx5 アドオン。nixpkgs の fcitx5 に対してソースからビルドする
+- `overlays.default` — 下の4つのパッケージを足す overlay。NixOS ではこれを `nixpkgs.overlays` に足して、システムの fcitx5 に対してビルドする。
+  home-manager module は overlay を使わずに、home-manager の `pkgs` で同じパッケージをビルドする
+- `packages.<system>.fcitx5-meltype` (`default`) — fcitx5 アドオン。この flake の nixpkgs の fcitx5 に対してソースからビルドする
 - `packages.<system>.ibus-meltype` — IBus エンジン (upstream の Python 製エンジン)。component は `share/ibus/component/meltype.xml`。
   エンジンは nixpkgs の Python と IBus の typelib で動くので、ディストリの ibus-daemon から使うときも python3-gi などは要らない
 - `packages.<system>.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。本体は flake input `meltype-src`
@@ -106,22 +108,21 @@ programs.meltype = {
 #### NixOS
 
 module から `inputs` を参照できるように、`outputs = { nixpkgs, ... }@inputs:` で受け取り、`specialArgs = { inherit inputs; };` で渡す。
+パッケージは overlay で `pkgs` に足す (`packages.<system>` を直接使うと、システムの fcitx5 とは別の fcitx5 に対してビルドしたものになる)。
 
 ```nix
 { inputs, pkgs, ... }:
-let
-  meltype = inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system};
-in
 {
+  nixpkgs.overlays = [ inputs.nix-meltype.overlays.default ];
   i18n.inputMethod = {
     enable = true;
     # fcitx5
     type = "fcitx5";
-    fcitx5.addons = [ meltype.fcitx5-meltype ];
+    fcitx5.addons = [ pkgs.fcitx5-meltype ];
     fcitx5.waylandFrontend = true;
     # IBus
     # type = "ibus";
-    # ibus.engines = [ meltype.ibus-meltype ];
+    # ibus.engines = [ pkgs.ibus-meltype ];
   };
 }
 ```
@@ -195,9 +196,8 @@ Name=meltype
 ## ハマりどころ
 
 - 環境変数と入力メソッドの変更は、ログインし直すまで既存の GUI セッションに反映されない
-- 対応システム以外 (riscv64 など) では `packages.<system>` が存在しないので、評価時に attribute missing エラーになる
+- 対応システム以外 (riscv64 など) では、評価時に meltype-bin が「リリース zip が無い」エラーで止まる
 - fcitx5 はディストリの fcitx5 では動かない。アドオンは nixpkgs の fcitx5 に対してビルドしているので、`/usr/bin/fcitx5` からは読めない
-- `nixpkgs.follows` を外さない。外すと、アドオンのビルドに使った fcitx5 と実行する fcitx5 のバージョンがずれる
 - home-manager の `gtk.enable` を有効にしていると、fcitx5 module は GTK の settings.ini に `gtk-im-module=fcitx` を書く。
   GTK アプリは Wayland の text-input でなく fcitx の GTK モジュールを使うので、ディストリの GTK アプリにはディストリの fcitx5-gtk が要る
 - (症状が出たときだけ対処する) home-manager の `fcitx5-daemon` が Wayland のソケットより先に起動すると、

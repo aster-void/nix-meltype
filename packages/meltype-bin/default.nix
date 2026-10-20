@@ -17,7 +17,9 @@
 }:
 let
   sources = import ./sources.nix;
-  source = sources.${stdenvNoCC.hostPlatform.system};
+  source =
+    sources.${stdenvNoCC.hostPlatform.system}
+      or (throw "meltype-bin: upstream のリリース zip が ${stdenvNoCC.hostPlatform.system} 向けに無い");
 in
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "meltype-bin";
