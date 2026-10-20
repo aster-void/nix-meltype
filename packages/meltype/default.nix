@@ -1,71 +1,69 @@
-# Meltype の本体 (libMeltypeNative.so, .NET NativeAOT) と Mozc の変換ヘルパー。リリース zip のビルド済みバイナリを使う。
-# ソースからのビルドは .NET 10 の NativeAOT と Mozc の Bazel ビルド (upstream CI で 30〜40 分) が要るので採らない。
-# zip 内の fcitx5/meltype.so は Ubuntu 24.04 の fcitx5 向けなので使わず、fcitx5-meltype でソースからビルドする。
-# 更新は version と、sources.nix・repoSrc の hash を書き換える。
+# Meltype の本体 (libMeltypeNative.so) を upstream のソース (flake input meltype-src) から NativeAOT でビルドする。
+# Mozc の変換ヘルパーは meltype-bin (リリース版) のビルド済みバイナリを使う。meltype-src を main のコミットに差し替えたときも
+# ヘルパーはリリース版のままになる。upstream の bot.yml も HEAD の本体と最新リリースのヘルパーを組み合わせている。
+# csproj に PackageReference が無く、NativeAOT のコンパイラは nixpkgs の .NET SDK に同梱されるので、nugetDeps は要らない。
 {
   lib,
-  stdenvNoCC,
-  fetchurl,
-  fetchFromGitHub,
-  autoPatchelfHook,
-  patchelf,
-  unzip,
-  icu,
   stdenv,
+  buildDotnetModule,
+  dotnetCorePackages,
+  patchelf,
+  clang,
+  icu,
+  zlib,
+  meltype-bin,
+  src,
+  version,
 }:
-let
-  sources = import ./sources.nix;
-  source = sources.${stdenvNoCC.hostPlatform.system};
-in
-stdenvNoCC.mkDerivation (finalAttrs: {
+buildDotnetModule {
   pname = "meltype";
-  version = "1.3.0";
+  inherit src version;
 
-  src = fetchurl {
-    url = "https://github.com/yksr-melt/Meltype/releases/download/v${finalAttrs.version}/Meltype-${finalAttrs.version}-${source.asset}.zip";
-    inherit (source) hash;
-  };
-
-  nativeBuildInputs = [
-    autoPatchelfHook
-    patchelf
-    unzip
+  projectFile = "src/Meltype.Mac.Native/Meltype.Mac.Native.csproj";
+  dotnet-sdk = dotnetCorePackages.sdk_10_0;
+  selfContainedBuild = true;
+  # upstream の linux/build.sh と同じ publish の引数
+  dotnetFlags = [
+    "-p:PublishAot=true"
+    "-p:NativeLib=Shared"
+    "-p:StripSymbols=true"
   ];
-  # meltype_mozc_helper の libstdc++ / libgcc_s
-  buildInputs = [ stdenv.cc.cc.lib ];
 
-  # 配置はアドオンが読むパス (MELTYPE_DIR/libMeltypeNative.so, MELTYPE_DIR/mozc/meltype_mozc_helper) に合わせる
+  # NativeAOT のリンクに使う (upstream の linux/build.sh と同じ clang)
+  nativeBuildInputs = [
+    clang
+    patchelf
+  ];
+  buildInputs = [ zlib ];
+
+  # NativeAOT の共有ライブラリは publish でしか作られないので、buildDotnetModule の build/install を使わずに publish する
+  buildPhase = ''
+    runHook preBuild
+    dotnet publish src/Meltype.Mac.Native/Meltype.Mac.Native.csproj -c Release -r ${dotnetCorePackages.systemToDotnetRid stdenv.hostPlatform.system} --no-restore $dotnetFlags -o publish
+    runHook postBuild
+  '';
+
+  # 配置は meltype-bin と同じ。fcitx5-meltype / ibus-meltype は repoSrc と lib/meltype だけを参照する
   installPhase = ''
     runHook preInstall
-    install -Dm755 libMeltypeNative.so $out/lib/meltype/libMeltypeNative.so
-    install -Dm755 mozc/meltype_mozc_helper $out/lib/meltype/mozc/meltype_mozc_helper
-    install -Dm644 icon.png $out/lib/meltype/icon.png
+    install -Dm755 publish/MeltypeNative.so $out/lib/meltype/libMeltypeNative.so
+    install -Dm644 linux/icon.png $out/lib/meltype/icon.png
+    ln -s ${meltype-bin}/lib/meltype/mozc $out/lib/meltype/mozc
     runHook postInstall
   '';
 
-  # libMeltypeNative.so は InvariantGlobalization=false なので、起動時に libicuuc.so.<ver> を dlopen する。
-  # NEEDED に無いため runtimeDependencies では RUNPATH に入らず、fixupPhase の shrink-rpath でも消される。
-  # shrink-rpath の後に走る postFixup で足す
+  # ICU を dlopen するので RUNPATH に足す。理由は meltype-bin の postFixup と同じ
   postFixup = ''
     patchelf --add-rpath ${lib.getLib icu}/lib $out/lib/meltype/libMeltypeNative.so
   '';
 
-  # fcitx5-meltype がビルドするソース。本体と同じタグ
-  passthru.repoSrc = fetchFromGitHub {
-    owner = "yksr-melt";
-    repo = "Meltype";
-    tag = "v${finalAttrs.version}";
-    hash = "sha256-WihlGZQCejXSdhRQD7WJQnamwrxmjqLNecop7mDlk9s=";
-  };
+  passthru.repoSrc = src;
 
-  meta = {
-    description = "Meltype core library and Mozc conversion helper (prebuilt)";
-    homepage = "https://github.com/yksr-melt/Meltype";
-    license = with lib.licenses; [
-      gpl3Plus
-      bsd3 # Mozc
+  meta = meltype-bin.meta // {
+    description = "Meltype core library built from source, with the prebuilt Mozc helper";
+    sourceProvenance = [
+      lib.sourceTypes.fromSource
+      lib.sourceTypes.binaryNativeCode # Mozc ヘルパー
     ];
-    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
-    platforms = builtins.attrNames sources;
   };
-})
+}

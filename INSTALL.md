@@ -10,10 +10,11 @@
 - `packages.<system>.fcitx5-meltype` (`default`) — fcitx5 アドオン。nixpkgs の fcitx5 に対してソースからビルドする
 - `packages.<system>.ibus-meltype` — IBus エンジン (upstream の Python 製エンジン)。component は `share/ibus/component/meltype.xml`。
   エンジンは nixpkgs の Python と IBus の typelib で動くので、ディストリの ibus-daemon から使うときも python3-gi などは要らない
-- `packages.<system>.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。リリース zip のビルド済みバイナリを使う。
+- `packages.<system>.meltype` — 本体 (`libMeltypeNative.so`) と Mozc 変換ヘルパー。本体は flake input `meltype-src`
+  (デフォルトは最新リリースのタグ) から NativeAOT でビルドし、ヘルパーは `meltype-bin` のものを使う。
   `fcitx5-meltype` / `ibus-meltype` が store パスで参照するので、個別に入れる必要はない
-- `packages.<system>.{fcitx5,ibus}-meltype-unstable` / `meltype-unstable` — 検証用。本体を upstream のソース
-  (flake input `meltype-src`、ロックされたコミット) から NativeAOT でビルドする。普段使いには上のリリース版を使う
+- `packages.<system>.meltype-bin` — 本体とヘルパーのリリース zip のビルド済みバイナリ。
+  本体のソースビルドが通らないときに `fcitx5-meltype.override { meltype = meltype-bin; }` で使う
 
 ## Nix / home-manager が無い場合
 

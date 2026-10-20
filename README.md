@@ -73,6 +73,33 @@ NixOS では、`i18n.inputMethod` の `fcitx5.addons` か `ibus.engines` に
 適用したら、ディストリの IME の autostart を止めて、入力メソッドに `meltype` を追加し、ログインし直す
 (手順は INSTALL.md の「4. 既存の IME を止める」と「5. 設定を適用して Meltype を入力メソッドに追加する」)。
 
+### pre 版や main のコミットを使う
+
+Meltype の本体は flake input `meltype-src` (デフォルトは最新リリースのタグ) からビルドする。
+`meltype-src` を upstream のタグかコミットに差し替えると、`fcitx5-meltype` / `ibus-meltype` がその版になる。
+Mozc の変換ヘルパーは、差し替えてもリリース版のビルド済みバイナリのまま。
+
+```nix
+# flake.nix
+inputs.nix-meltype = {
+  url = "github:aster-void/nix-meltype";
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.meltype-src.url = "github:yksr-melt/Meltype/v1.3.1-pre.1"; # main を追うなら github:yksr-melt/Meltype
+};
+```
+
+更新は自分の flake で `nix flake update nix-meltype`。手元で一度だけ試すなら
+`nix build github:aster-void/nix-meltype#fcitx5-meltype --override-input meltype-src github:yksr-melt/Meltype/<rev>`。
+
+本体のソースビルドが通らないときは、リリース zip のビルド済み本体 `meltype-bin` に切り替えられる。
+
+```nix
+programs.meltype.framework.fcitx5.package =
+  inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}.fcitx5-meltype.override {
+    meltype = inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}.meltype-bin;
+  };
+```
+
 ## ライセンス
 
 このリポジトリの Nix 式と CI 設定は [Unlicense](LICENSE) でパブリックドメインに置いている。

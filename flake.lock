@@ -12,6 +12,7 @@
       },
       "original": {
         "owner": "yksr-melt",
+        "ref": "v1.3.0",
         "repo": "Meltype",
         "type": "github"
       }
