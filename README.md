@@ -115,10 +115,10 @@ programs.meltype = {
 適用したら、ディストリの IME の autostart を止めて、入力メソッドに `meltype` を追加し、ログインし直す
 (手順は INSTALL.md の「4. 既存の IME を止める」と「5. 設定を適用して Meltype を入力メソッドに追加する」)。
 
-### pre 版や main のコミットを使う
+### 最新リリース以外の版を使う
 
 Meltype の本体は flake input `meltype-src` (デフォルトは最新リリースのタグ) からビルドする。
-`meltype-src` を upstream のタグかコミットに差し替えると、`fcitx5-meltype` / `ibus-meltype` がその版になる。
+`meltype-src` を upstream の pre 版のタグや main のコミットに差し替えると、`fcitx5-meltype` / `ibus-meltype` がその版になる。
 Mozc の変換ヘルパーは、差し替えてもリリース版のビルド済みバイナリのまま。
 
 ```nix
@@ -133,7 +133,12 @@ inputs.nix-meltype = {
 更新は自分の flake で `nix flake update nix-meltype`。手元で一度だけ試すなら
 `nix build github:aster-void/nix-meltype#fcitx5-meltype --override-input meltype-src github:yksr-melt/Meltype/<rev>`。
 
-本体のソースビルドが通らないときは、リリース zip のビルド済み本体 `meltype-bin` に切り替えられる
+### ビルド済みバイナリを使う
+
+本体をソースからビルドせず、upstream のリリース zip のビルド済み本体 `meltype-bin` を使える。
+ビルドに時間をかけたくないときや、本体のソースビルドが通らないときに使う。
+`meltype-bin` はこの flake が固定している最新リリースの版で、`meltype-src` を差し替えても変わらない。
+そのため、上の「最新リリース以外の版を使う」とは同時に使えない
 (`p` は `inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}`)。
 
 ```nix
