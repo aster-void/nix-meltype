@@ -23,8 +23,11 @@
         builtins.attrNames (import ./packages/meltype-bin/sources.nix)
       );
       # meltype-src のデフォルト。利用者が meltype-src を差し替えても、このリポジトリの flake.lock は変わらない
-      releaseSrc = builtins.fetchTree (builtins.fromJSON (builtins.readFile ./flake.lock))
-        .nodes.meltype-src.locked;
+      releaseSrc =
+        let
+          lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+        in
+        builtins.fetchTree lock.nodes.meltype-src.locked;
       # upstream のリリース bot はタグを打つときに csproj の Version をその版にする (v1.2.2-pre.2 以降)。
       # main のコミットでは、直前のタグの版になる
       versionOf =
@@ -63,6 +66,6 @@
 
       homeModules.default = import ./modules/home-manager.nix self;
 
-      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt);
+      formatter = forAllSystems (system: nixpkgs.legacyPackages.${system}.nixfmt-tree);
     };
 }

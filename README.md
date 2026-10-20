@@ -95,9 +95,10 @@ inputs.nix-meltype = {
 
 ```nix
 programs.meltype.framework.fcitx5.package =
-  inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}.fcitx5-meltype.override {
-    meltype = inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system}.meltype-bin;
-  };
+  let
+    p = inputs.nix-meltype.packages.${pkgs.stdenv.hostPlatform.system};
+  in
+  p.fcitx5-meltype.override { meltype = p.meltype-bin; };
 ```
 
 ## ライセンス

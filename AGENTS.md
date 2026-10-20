@@ -13,9 +13,7 @@ aarch64 のビルドとテストは手元でできないので、CI (`.github/wo
 `nix build .#ibus-meltype` では upstream の IBus 向けテスト (Mozc 込みの変換) と、専用の ibus-daemon に component を読ませて
 かなが出るかの確認 (`packages/ibus-meltype/check-component.py`) が走る。
 
-利用者は `meltype-src` を pre 版のタグや main のコミットに差し替えて使う (README)。この flake は main を追わない。
-CI (`.github/workflows/upstream-main.yml`) が毎日 `--override-input meltype-src github:yksr-melt/Meltype` で upstream main の HEAD をビルドし、
-upstream の変更でビルドが通らなくなったことを検出する (lock は更新しない)。
-特定のコミットを試すときも `--override-input meltype-src github:yksr-melt/Meltype/<rev>` を付けてビルドする。
+利用者は `meltype-src` を pre 版のタグや main のコミットに差し替えて使う (README)。この flake は main を追わず、
+CI が保証するのはデフォルトのリリースのビルドだけ。特定のコミットを試すときは `--override-input meltype-src github:yksr-melt/Meltype/<rev>` を付けてビルドする。
 差し替えた本体とリリース版の Mozc ヘルパーの組み合わせは、IBus 版のテストだけが検証する (fcitx5 版のテストは Mozc 無しで走る)。
 
