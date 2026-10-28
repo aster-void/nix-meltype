@@ -127,7 +127,7 @@ Mozc の変換ヘルパーは、差し替えてもリリース版のビルド済
 inputs.nix-meltype = {
   url = "github:aster-void/nix-meltype";
   inputs.nixpkgs.follows = "nixpkgs";
-  inputs.meltype-src.url = "github:yksr-melt/Meltype/v1.3.1-pre.1"; # main を追うなら github:yksr-melt/Meltype
+  inputs.meltype-src.url = "github:yksr-melt/Meltype/<pre 版のタグ>"; # main を追うなら github:yksr-melt/Meltype
 };
 ```
 

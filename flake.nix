@@ -6,7 +6,7 @@
     # meltype (本体) をビルドする upstream のソース。デフォルトはリリースタグで、meltype-bin の版もこのタグから決まる。
     # 利用者は inputs.nix-meltype.inputs.meltype-src.url で pre 版のタグや main のコミットに差し替える
     meltype-src = {
-      url = "github:yksr-melt/Meltype/v1.3.0";
+      url = "github:yksr-melt/Meltype/v1.4.0";
       flake = false;
     };
   };

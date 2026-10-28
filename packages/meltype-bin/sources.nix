@@ -2,10 +2,10 @@
 {
   x86_64-linux = {
     asset = "linux";
-    hash = "sha256-KE7lcpl13y3p7U/X1fWyKwmC23xaTyGGuwHVusg15zY=";
+    hash = "sha256-DNePfymBrMqlImTa3Jxx5gR6ShyQRHKjURvkCUGQsto=";
   };
   aarch64-linux = {
     asset = "linux-arm64";
-    hash = "sha256-f8mgxy3AIAm5903/A71mVdED4evljxNVCAysvy3Sp+E=";
+    hash = "sha256-OEcb6pAfzkNCaob7r4HGzUT3x0cA3QUrpU9tB2D1bx0=";
   };
 }
