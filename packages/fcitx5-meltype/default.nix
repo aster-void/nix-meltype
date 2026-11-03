@@ -38,7 +38,7 @@ stdenv.mkDerivation {
     ln -s ${meltype}/lib/meltype/libMeltypeNative.so $MELTYPE_DIR/
   '';
 
-  # upstream の install ルールは無い。配置は upstream の install.sh に合わせる
+  # upstream の install ルールは無い。配置は upstream の linux/build-deb.sh・build-rpm.sh に合わせる
   installPhase = ''
     runHook preInstall
     install -Dm755 meltype.so $out/lib/fcitx5/meltype.so
